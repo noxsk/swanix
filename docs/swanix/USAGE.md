@@ -135,7 +135,7 @@ ubus call swanix status  # rpcd 接口
 | 状态 | 含义 |
 |---|---|
 | `healthy` | 正常 |
-| `degraded` | 可达，但延迟或探测失败率明显升高；份额相应降低 |
+| `degraded` | 可达，但空闲时延迟或探测失败率明显升高；测速等负载造成的排队不算质量下降，份额不因此降低 |
 | `down` | 不分配新连接 |
 | `recovering` | 已恢复，份额在 `recover_ramp` 内逐步上升 |
 | `unknown` | 尚无探测结果 |

@@ -240,11 +240,48 @@ func (q *Quality) BaseRTT() time.Duration {
 	return min
 }
 
-// Degraded flags a usable but impaired line.
-func (q *Quality) Degraded(rtt time.Duration) bool {
-	if len(q.oks) >= 8 && q.LossRate() > 0.3 {
-		return true
-	}
+// Lossy reports a sustained probe-failure ratio. The ratio is not link packet loss.
+func (q *Quality) Lossy() bool {
+	return len(q.oks) >= 8 && q.LossRate() > 0.3
+}
+
+// Slow reports a probe much slower than this line's own idle baseline.
+func (q *Quality) Slow(rtt time.Duration) bool {
 	base := q.BaseRTT()
 	return base > 0 && rtt > 3*base+50*time.Millisecond
+}
+
+// Degraded flags a usable but impaired line, before load is taken into account.
+func (q *Quality) Degraded(rtt time.Duration) bool {
+	return q.Lossy() || q.Slow(rtt)
+}
+
+// loadUtilisation is the used fraction of capacity at which probe RTT includes
+// this line's own queue. That delay is the transfer, not a worse path.
+const loadUtilisation = 0.2
+
+// QueueingDelay reports that rx/tx already explain a high probe RTT.
+// Rates are the greater of the smoothed rate and the last sample interval.
+func QueueingDelay(downMbps, upMbps, rxMbps, txMbps float64) bool {
+	u := 0.0
+	if downMbps > 0 {
+		u = rxMbps / downMbps
+	}
+	if upMbps > 0 && txMbps/upMbps > u {
+		u = txMbps / upMbps
+	}
+	return u >= loadUtilisation
+}
+
+// Impaired is the quality signal for the state machine. Probe loss always
+// counts. Extra delay counts only while the line is idle; delay while it is
+// forwarding is queueing caused by the traffic just assigned to it.
+func (q *Quality) Impaired(rtt time.Duration, loaded bool) bool {
+	if q.Lossy() {
+		return true
+	}
+	if loaded {
+		return false
+	}
+	return q.Slow(rtt)
 }

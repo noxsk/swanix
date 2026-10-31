@@ -18,9 +18,17 @@
 .DS_Store
 /config.d/
 /venv/
+# personal conventions, not part of the project
 CLAUDE.md
 AGENTS.md
 /.claude/
+.cursor/
+
+# local test binaries and coverage; *_test.go and ci/test stay tracked
+*.test
+coverage.out
+coverage.html
+*.coverprofile
 
 # swanix build outputs
 /dist/

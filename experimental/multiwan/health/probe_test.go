@@ -109,3 +109,25 @@ func TestQualityDegraded(t *testing.T) {
 		t.Fatalf("loss %.2f", q.LossRate())
 	}
 }
+
+func TestLoadedDelayIsNotImpairment(t *testing.T) {
+	q := NewQuality(20)
+	for i := 0; i < 10; i++ {
+		q.Push(RoundResult{Targets: []TargetResult{{OK: true, RTT: 12 * time.Millisecond}}})
+	}
+	if !q.Slow(200 * time.Millisecond) {
+		t.Fatal("idle delay should still be detected")
+	}
+	if q.Impaired(200*time.Millisecond, true) {
+		t.Fatal("delay while forwarding is the queue, not a worse path")
+	}
+	if !q.Impaired(200*time.Millisecond, false) {
+		t.Fatal("the same delay while idle is impairment")
+	}
+	if !QueueingDelay(120, 120, 80, 1) {
+		t.Fatal("80 of 120 Mbps is load")
+	}
+	if QueueingDelay(120, 120, 1, 0.2) {
+		t.Fatal("idle probe traffic is not load")
+	}
+}

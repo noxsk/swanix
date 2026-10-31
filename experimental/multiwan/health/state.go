@@ -49,12 +49,13 @@ type Transition struct {
 
 // Machine is not safe for concurrent use; the engine owns it.
 type Machine struct {
-	p          Params
-	state      State
-	fail, ok   int
-	since      time.Time
-	reason     string
-	recoveryAt time.Time
+	p           Params
+	state       State
+	fail, ok    int
+	delayRounds int // consecutive impaired rounds while Healthy
+	since       time.Time
+	reason      string
+	recoveryAt  time.Time
 }
 
 func NewMachine(p Params, now time.Time) *Machine {
@@ -80,7 +81,7 @@ func (m *Machine) set(now time.Time, to State, reason string) *Transition {
 	}
 	t := &Transition{At: now, From: m.state, To: to, Reason: reason}
 	m.state, m.since, m.reason = to, now, reason
-	m.fail, m.ok = 0, 0
+	m.fail, m.ok, m.delayRounds = 0, 0, 0
 	if to == Recovering {
 		m.recoveryAt = now
 	}
@@ -127,9 +128,16 @@ func (m *Machine) Observe(now time.Time, roundOK, degraded bool) *Transition {
 		if m.fail >= m.p.DownRounds {
 			return m.set(now, Down, "probes failing")
 		}
+		// One slow round is a Wi-Fi retry or the first instant of a transfer.
+		// Quality drops only after it persists.
 		if roundOK && degraded {
-			return m.set(now, Degraded, "latency or loss above threshold")
+			m.delayRounds++
+			if m.delayRounds >= 2 {
+				return m.set(now, Degraded, "latency or loss above threshold")
+			}
+			return nil
 		}
+		m.delayRounds = 0
 	case Degraded:
 		if m.fail >= m.p.DownRounds {
 			return m.set(now, Down, "probes failing")

@@ -76,17 +76,18 @@ type famState struct {
 }
 
 type wanState struct {
-	w         config.WAN
-	h         config.Health
-	fams      map[int]*famState
-	dev       string
-	rx, tx    float64 // smoothed Mbps
-	lastRX    uint64
-	lastTX    uint64
-	lastAt    time.Time
-	sampledAt time.Time
-	haveLast  bool
-	assigned  uint64
+	w              config.WAN
+	h              config.Health
+	fams           map[int]*famState
+	dev            string
+	rx, tx         float64 // smoothed Mbps
+	instRX, instTX float64 // last sample interval, unsmoothed
+	lastRX         uint64
+	lastTX         uint64
+	lastAt         time.Time
+	sampledAt      time.Time
+	haveLast       bool
+	assigned       uint64
 }
 
 // Engine is safe for concurrent use.
@@ -320,7 +321,7 @@ func (e *Engine) ProbeDue(ctx context.Context) (changed bool) {
 			j.fs.rtt = r.RTT
 			j.fs.probedAt = now
 		}
-		degraded := r.OK && j.fs.q.Degraded(r.RTT)
+		degraded := r.OK && j.fs.q.Impaired(r.RTT, wsQueueing(j.ws))
 		if tr := j.fs.m.Observe(now, r.OK, degraded); tr != nil {
 			e.record(j.ws, j.fs.fam, tr)
 			changed = true
@@ -346,8 +347,10 @@ func (e *Engine) Sample() {
 			dt := now.Sub(ws.lastAt).Seconds()
 			if dt > 0 && rx >= ws.lastRX && tx >= ws.lastTX {
 				const alpha = 0.2
-				ws.rx = alpha*float64(rx-ws.lastRX)*8/dt/1e6 + (1-alpha)*ws.rx
-				ws.tx = alpha*float64(tx-ws.lastTX)*8/dt/1e6 + (1-alpha)*ws.tx
+				ws.instRX = float64(rx-ws.lastRX) * 8 / dt / 1e6
+				ws.instTX = float64(tx-ws.lastTX) * 8 / dt / 1e6
+				ws.rx = alpha*ws.instRX + (1-alpha)*ws.rx
+				ws.tx = alpha*ws.instTX + (1-alpha)*ws.tx
 				ws.sampledAt = now
 			}
 		}
@@ -383,8 +386,9 @@ func (e *Engine) Schedule() error {
 					continue
 				}
 				fs := ws.fams[fam]
+				rx, tx := ws.rate()
 				si := scheduler.Input{ID: ws.w.ID, State: fs.m.State(), Role: ws.w.Role, DownMbps: ws.w.DownloadMbps,
-					UpMbps: ws.w.UploadMbps, Preference: ws.w.Preference, Bias: ws.w.TrafficBias, RXMbps: ws.rx, TXMbps: ws.tx,
+					UpMbps: ws.w.UploadMbps, Preference: ws.w.Preference, Bias: ws.w.TrafficBias, RXMbps: rx, TXMbps: tx,
 					BaseRTT: fs.q.BaseRTT(), RTT: fs.rtt, LossRate: fs.q.LossRate(),
 					MetricsFresh:   !ws.sampledAt.IsZero() && now.Sub(ws.sampledAt) < staleAfter && !fs.probedAt.IsZero() && now.Sub(fs.probedAt) < staleAfter,
 					RecoverElapsed: fs.m.RecoveryElapsed(now), RecoverRamp: time.Duration(ws.h.RecoverRamp) * time.Second}
@@ -427,6 +431,24 @@ func (e *Engine) Schedule() error {
 		return nil
 	}
 	return e.o.Kernel.UpdateWeights(e.input(e.snap))
+}
+
+// rate is the faster of the smoothed rate and the last sample. The smoothed
+// value lags a transfer by several intervals, which made a speed test look idle.
+func (ws *wanState) rate() (rx, tx float64) {
+	rx, tx = ws.rx, ws.tx
+	if ws.instRX > rx {
+		rx = ws.instRX
+	}
+	if ws.instTX > tx {
+		tx = ws.instTX
+	}
+	return rx, tx
+}
+
+func wsQueueing(ws *wanState) bool {
+	rx, tx := ws.rate()
+	return health.QueueingDelay(ws.w.DownloadMbps, ws.w.UploadMbps, rx, tx)
 }
 
 func (e *Engine) byName(n string) *wanState {

@@ -214,6 +214,23 @@ func TestSpillIgnoresStaleMetricsAndIsOptional(t *testing.T) {
 	}
 }
 
+func TestBusyRTTDoesNotCutScore(t *testing.T) {
+	w := wan(1, 120, 120)
+	w.MetricsFresh = true
+	w.RXMbps = 80
+	w.BaseRTT = 12 * time.Millisecond
+	w.RTT = 12 * time.Millisecond
+	idle := Score(w)
+	w.RTT = 200 * time.Millisecond
+	if Score(w) != idle {
+		t.Fatalf("queueing delay changed the score: idle %v busy-rtt %v", idle, Score(w))
+	}
+	w.RXMbps = 0
+	if Score(w) >= idle {
+		t.Fatalf("idle delay should lower the score, got %v vs %v", Score(w), idle)
+	}
+}
+
 func TestUtilisationFollowsBias(t *testing.T) {
 	w := Input{DownMbps: 100, UpMbps: 10, RXMbps: 20, TXMbps: 9}
 	for bias, want := range map[string]float64{config.BiasDownload: 0.2, config.BiasUpload: 0.9, config.BiasBalanced: 0.9} {

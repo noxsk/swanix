@@ -171,8 +171,10 @@ func Score(in Input) float64 {
 		u = math.Max(u, in.TXMbps/in.UpMbps)
 	}
 	headroom := math.Pow(math.Max(0.1, 1-clamp(u, 0, 1)), 0.7)
+	// Headroom already steers new connections away from a busy line. Probe RTT
+	// on that line is the same queue, so it must not cut the score a second time.
 	lat := 1.0
-	if in.BaseRTT > 0 && in.RTT > in.BaseRTT {
+	if !health.QueueingDelay(in.DownMbps, in.UpMbps, in.RXMbps, in.TXMbps) && in.BaseRTT > 0 && in.RTT > in.BaseRTT {
 		excess := float64(in.RTT - in.BaseRTT)
 		unit := 2 * math.Max(float64(in.BaseRTT), float64(10*time.Millisecond))
 		lat = 1 / (1 + excess/unit)

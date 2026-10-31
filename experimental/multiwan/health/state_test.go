@@ -83,6 +83,10 @@ func TestDegraded(t *testing.T) {
 	m, now := newTest()
 	step(m, now, true, false)
 	step(m, now, true, true)
+	if m.State() != Healthy {
+		t.Fatal("one slow round must not drop quality")
+	}
+	step(m, now, true, true)
 	if m.State() != Degraded {
 		t.Fatal(m.State())
 	}
