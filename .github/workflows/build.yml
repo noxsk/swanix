@@ -1,0 +1,179 @@
+name: build
+
+# Builds native OpenWrt packages (ipk for 24.10, apk for 25.12) for the locked
+# series/target matrix, Lite and Full. Called by release.yml and runnable on demand.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'openwrt/**'
+      - 'ci/build/**'
+      - 'ci/locks/**'
+      - '.github/workflows/build.yml'
+
+permissions:
+  contents: read
+
+env:
+  GOTOOLCHAIN: local
+  GOFLAGS: -mod=readonly
+
+jobs:
+  package:
+    name: ${{ matrix.series }} ${{ matrix.target }} ${{ matrix.variant }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        series: ['24.10', '25.12']
+        target: ['x86/64', 'mediatek/filogic']
+        variant: [lite, full]
+        include:
+          - { target: 'x86/64', goarch: amd64, tag: x86_64, slug: x86-64 }
+          - { target: 'mediatek/filogic', goarch: arm64, tag: aarch64_cortex-a53, slug: mediatek-filogic }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Tools
+        run: sudo apt-get update && sudo apt-get install -y zstd libncurses-dev gawk python3 git-core
+      - name: Install locked Go
+        run: echo "$(ci/build/install-go.sh "$RUNNER_TEMP/go-lock")" >> "$GITHUB_PATH"
+      - name: Cronet toolchain (Full only)
+        if: matrix.variant == 'full'
+        run: |
+          # Part of the reviewed feature set. If it cannot be prepared for this target the
+          # job fails; there is no smaller Full. The output is KEY=VALUE lines for GITHUB_ENV.
+          ci/build/cronet.sh ${{ matrix.goarch }} "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Build the binary
+        env:
+          SWANIX_OPENWRT: ${{ matrix.series }}
+          SWANIX_COMMIT: ${{ github.sha }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/pre"
+          ci/build/binary.sh ${{ matrix.variant }} ${{ matrix.goarch }} "$RUNNER_TEMP/pre/swanix-${{ matrix.variant }}"
+      - name: Feature report from the real binary
+        if: matrix.goarch == 'amd64'
+        run: |
+          "$RUNNER_TEMP/pre/swanix-${{ matrix.variant }}" features --json > "$RUNNER_TEMP/features-${{ matrix.variant }}-${{ matrix.goarch }}.json"
+          python3 ci/release/check-features.py "$RUNNER_TEMP/features-${{ matrix.variant }}-${{ matrix.goarch }}.json" ${{ matrix.variant }}
+      - name: Naive (cronet) traffic through wan_policy, with the binary just built
+        if: matrix.variant == 'full' && matrix.goarch == 'amd64' && matrix.series == '25.12'
+        run: |
+          set -eu
+          sudo apt-get update && sudo apt-get install -y iproute2 nftables python3
+          # a plain sing-box from this tree is the naive server; no cronet environment for these builds
+          env -u CC -u CXX -u CGO_LDFLAGS -u QEMU_LD_PREFIX CGO_ENABLED=0 go build -o "$RUNNER_TEMP/sing-box-server" ./cmd/sing-box
+          sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=readonly \
+            SWANIX_NAIVE_BIN="$RUNNER_TEMP/pre/swanix-full" SWANIX_NAIVE_SERVER="$RUNNER_TEMP/sing-box-server" \
+            env -u CC -u CXX -u CGO_LDFLAGS -u QEMU_LD_PREFIX ci/test/netns.sh ./cmd/swanix -run FullNaive -v
+      - name: Lite must not link proxy code
+        if: matrix.variant == 'lite'
+        run: ci/validate/lite-deps.sh
+      - name: Prepare the SDK
+        # the cronet compiler environment of the Full job must not leak into the SDK's host tools
+        run: env -u CC -u CXX -u CGO_LDFLAGS -u QEMU_LD_PREFIX ci/build/sdk.sh ${{ matrix.series }} ${{ matrix.target }} "$RUNNER_TEMP/sdk" | tail -1 > "$RUNNER_TEMP/sdkdir"
+      - name: Package with the SDK
+        run: |
+          env -u CC -u CXX -u CGO_LDFLAGS -u QEMU_LD_PREFIX \
+            ci/build/package.sh "$(cat "$RUNNER_TEMP/sdkdir")" ${{ matrix.series }} "$RUNNER_TEMP/pre" ${{ matrix.variant }}
+      - name: Collect
+        run: |
+          set -eu
+          out=out/${{ matrix.series }}/${{ matrix.target }}/${{ matrix.tag }}
+          mkdir -p "$out" out/meta
+          find "$(cat "$RUNNER_TEMP/sdkdir")/bin/packages" -type f \( -name '*.ipk' -o -name '*.apk' \) -exec cp {} "$out/" \;
+          cp "$RUNNER_TEMP"/features-*.json out/meta/ 2>/dev/null || true
+          cp "$RUNNER_TEMP/pre/swanix-${{ matrix.variant }}" "out/meta/swanix-${{ matrix.variant }}-${{ matrix.series }}-${{ matrix.goarch }}"
+          ls -R out | head -50
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pkg-${{ matrix.series }}-${{ matrix.slug }}-${{ matrix.variant }}
+          path: out
+          if-no-files-found: error
+
+  package-smoke:
+    name: install smoke (${{ matrix.series }})
+    needs: package
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        series: ['24.10', '25.12']
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: pkg-${{ matrix.series }}-x86-64-*
+          path: dl
+          merge-multiple: true
+      - name: Install, switch variants, upgrade and remove inside the series' rootfs
+        run: sudo ci/test/package-smoke.sh ${{ matrix.series }} "dl/${{ matrix.series }}/x86/64/x86_64"
+
+  openwrt-vm:
+    name: OpenWrt VM (${{ matrix.series }})
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        series: ['24.10', '25.12']
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: pkg-${{ matrix.series }}-x86-64-lite
+          path: dl
+      - name: Locked Go (builds the test ISP's IPv6 helper for the guest)
+        run: echo "$(sh ci/build/install-go.sh "$RUNNER_TEMP/go")" >> "$GITHUB_PATH"
+      - name: QEMU, KVM access
+        run: |
+          sudo apt-get update && sudo apt-get install -y qemu-system-x86 e2fsprogs python3
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm || true
+          ls -l /dev/kvm || echo "no /dev/kvm: the run falls back to TCG"
+      - name: Headless browser for the LuCI step
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pw" playwright@1.63.0
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Stock OpenWrt VM with netifd, fw4, procd, rpcd, uhttpd/LuCI; IPv4/IPv6, DHCP/PPPoE/PD uplinks, failover, confirm/rollback, upgrade, removal
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: |
+          python3 ci/test/vm/run.py ${{ matrix.series }} "dl/${{ matrix.series }}/x86/64/x86_64" "$RUNNER_TEMP/vm" --timeout 2400 \
+            --host-step 'node ci/test/luci/vm-browser.js "$VM_BASE_URL" "$RUNNER_TEMP/luci-shots" lite'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: vm-luci-screenshots-${{ matrix.series }}
+          path: ${{ runner.temp }}/luci-shots
+          if-no-files-found: ignore
+
+  openwrt-vm-arm64:
+    name: OpenWrt arm64 VM (24.10, filogic packages)
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: pkg-24.10-mediatek-filogic-lite
+          path: dl
+      - name: Locked Go (builds the test ISP's IPv6 helper for the guest)
+        run: echo "$(sh ci/build/install-go.sh "$RUNNER_TEMP/go")" >> "$GITHUB_PATH"
+      - name: QEMU (aarch64, TCG) and UEFI firmware
+        run: sudo apt-get update && sudo apt-get install -y qemu-system-arm qemu-efi-aarch64 e2fsprogs python3
+      - name: armsr/armv8 userland with the arm64 binaries built for mediatek/filogic
+        # opkg-only: the apk series would need the package arch added to apk's arch file as well
+        run: python3 ci/test/vm/run.py 24.10 "dl/24.10/mediatek/filogic/aarch64_cortex-a53" "$RUNNER_TEMP/vm" --timeout 6000 --arm64 aarch64_cortex-a53

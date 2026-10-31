@@ -1,0 +1,17 @@
+{
+	"luci-app-swanix": {
+		"description": "Grant access to swanix multi-WAN status and configuration",
+		"read": {
+			"ubus": {
+				"swanix": [ "status", "history", "features", "version", "doctor", "preview", "check" ]
+			},
+			"uci": [ "swanix" ]
+		},
+		"write": {
+			"ubus": {
+				"swanix": [ "prepare", "restore", "apply", "confirm", "rollback" ]
+			},
+			"uci": [ "swanix" ]
+		}
+	}
+}

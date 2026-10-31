@@ -1,0 +1,3 @@
+#!/bin/sh
+# Marker used by LuCI (menu depends) to show the proxy pages only on Full builds.
+exit 0

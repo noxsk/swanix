@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "project": "swanix",
+  "notes": "Everything a release depends on, pinned. Updating any value is a reviewed pull request; the release workflow refuses floating references (see ci/validate/validate.py).",
+  "fork": {
+    "base_import_commit": "4783914ff90ecac04eda15a93aaddb32ea998b96",
+    "commit_source": "the release job records the exact checked-out commit in build-manifest.json and stamps it into the binary (buildinfo.Commit)"
+  },
+  "upstream": {
+    "repository": "https://github.com/SagerNet/sing-box",
+    "tag": "v1.14.4",
+    "commit": "c005f35300ce76427dc285481ec5695f5b179cd2",
+    "go_mod_go": "1.25.5"
+  },
+  "go": {
+    "version": "1.26.10",
+    "linux_amd64": {
+      "url": "https://go.dev/dl/go1.26.10.linux-amd64.tar.gz",
+      "sha256": "ccfe7ae822d2c2f41f4fe7c956199967a4dac22d0ee0d2b2bfdb440aab3b20c5"
+    },
+    "note": "Prebuilt binaries are compiled with this exact toolchain (GOTOOLCHAIN=local). It satisfies go.mod's 'go 1.25.5'."
+  },
+  "full": {
+    "tags_file": "ci/locks/full-tags.txt",
+    "features_expected": "ci/locks/features.expected.json",
+    "upstream_default_tags": "release/DEFAULT_BUILD_TAGS",
+    "upstream_ldflags": "release/LDFLAGS",
+    "extra_tags": [
+      "with_musl"
+    ],
+    "cronet": {
+      "repository": "https://github.com/sagernet/cronet-go.git",
+      "version_file": ".github/CRONET_GO_VERSION",
+      "note": "with_naive_outbound needs the cronet toolchain (CGO + musl). Targets where it cannot be built stop the Full release; they are never shipped as a smaller Full."
+    }
+  },
+  "openwrt": {
+    "24.10": {
+      "release": "24.10.8",
+      "package_format": "ipk",
+      "feeds": {
+        "packages": {
+          "url": "https://github.com/openwrt/packages.git",
+          "branch": "openwrt-24.10",
+          "commit": "5dfea3b4394b334546e0d0b446d8a65e6620882e"
+        },
+        "luci": {
+          "url": "https://github.com/openwrt/luci.git",
+          "branch": "openwrt-24.10",
+          "commit": "0e6537981036ea221a73e497920192179e9f74c3"
+        }
+      },
+      "targets": {
+        "x86/64": {
+          "package_arch": "x86_64",
+          "goarch": "amd64",
+          "sdk": "openwrt-sdk-24.10.8-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst",
+          "sdk_url": "https://downloads.openwrt.org/releases/24.10.8/targets/x86/64/openwrt-sdk-24.10.8-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst",
+          "sdk_sha256": "ac4a0405d2eea821b06f93c14ba13ffa90ad0457648903df7dde02570027ab21",
+          "rootfs": "openwrt-24.10.8-x86-64-rootfs.tar.gz",
+          "rootfs_url": "https://downloads.openwrt.org/releases/24.10.8/targets/x86/64/openwrt-24.10.8-x86-64-rootfs.tar.gz",
+          "rootfs_sha256": "6c94190246a54088e3984fc0c4cbbb518972abb2b10a28e30a0c41554eea8b9d",
+          "image": "openwrt-24.10.8-x86-64-generic-ext4-combined.img.gz",
+          "image_url": "https://downloads.openwrt.org/releases/24.10.8/targets/x86/64/openwrt-24.10.8-x86-64-generic-ext4-combined.img.gz",
+          "image_sha256": "23872c64fdb66d0765e0d17f71453a66e7a91e9ecb10606d5f738e6d166e14ae"
+        },
+        "mediatek/filogic": {
+          "package_arch": "aarch64_cortex-a53",
+          "goarch": "arm64",
+          "sdk": "openwrt-sdk-24.10.8-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst",
+          "sdk_url": "https://downloads.openwrt.org/releases/24.10.8/targets/mediatek/filogic/openwrt-sdk-24.10.8-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst",
+          "sdk_sha256": "d9fd074f281823a3023e8f6a73aaac598018c898ec9ac4d1c507b596930d7482"
+        }
+      },
+      "vm_arm64": {
+        "image": "openwrt-24.10.8-armsr-armv8-generic-ext4-combined-efi.img.gz",
+        "image_url": "https://downloads.openwrt.org/releases/24.10.8/targets/armsr/armv8/openwrt-24.10.8-armsr-armv8-generic-ext4-combined-efi.img.gz",
+        "image_sha256": "d42301ee15eaf693da54577e262a91f03cdd25838caafb30c0d4bd9fddbae13e",
+        "note": "armsr/armv8 under QEMU TCG: runs the same arm64 musl binaries as mediatek/filogic; packages are installed with their package arch added to the arch list"
+      }
+    },
+    "25.12": {
+      "release": "25.12.6",
+      "package_format": "apk",
+      "feeds": {
+        "packages": {
+          "url": "https://github.com/openwrt/packages.git",
+          "branch": "openwrt-25.12",
+          "commit": "15431dc76799d474a2efa594275708679257c00b"
+        },
+        "luci": {
+          "url": "https://github.com/openwrt/luci.git",
+          "branch": "openwrt-25.12",
+          "commit": "75a306df84a020c57a631ef5b4c02ace56d93387"
+        }
+      },
+      "targets": {
+        "x86/64": {
+          "package_arch": "x86_64",
+          "goarch": "amd64",
+          "sdk": "openwrt-sdk-25.12.6-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst",
+          "sdk_url": "https://downloads.openwrt.org/releases/25.12.6/targets/x86/64/openwrt-sdk-25.12.6-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst",
+          "sdk_sha256": "1864152619092e781fa36a401960c8e9ae42d6a364c44ee5f0b197ca5f3c0fcc",
+          "rootfs": "openwrt-25.12.6-x86-64-rootfs.tar.gz",
+          "rootfs_url": "https://downloads.openwrt.org/releases/25.12.6/targets/x86/64/openwrt-25.12.6-x86-64-rootfs.tar.gz",
+          "rootfs_sha256": "55e52bb34de582a1ebe56bd50f94ff54ac7c77f5bca9cae807656d1930456da4",
+          "image": "openwrt-25.12.6-x86-64-generic-ext4-combined.img.gz",
+          "image_url": "https://downloads.openwrt.org/releases/25.12.6/targets/x86/64/openwrt-25.12.6-x86-64-generic-ext4-combined.img.gz",
+          "image_sha256": "f8538784d0288b4133a99ac2a68443e4922ffde6343e80df56a5882364b9d499"
+        },
+        "mediatek/filogic": {
+          "package_arch": "aarch64_cortex-a53",
+          "goarch": "arm64",
+          "sdk": "openwrt-sdk-25.12.6-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst",
+          "sdk_url": "https://downloads.openwrt.org/releases/25.12.6/targets/mediatek/filogic/openwrt-sdk-25.12.6-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst",
+          "sdk_sha256": "1c04ac47bdfc361d6aab299eb520d570e368013dedcb8d29cf39dc7168ae642e"
+        }
+      },
+      "vm_arm64": {
+        "image": "openwrt-25.12.6-armsr-armv8-generic-ext4-combined-efi.img.gz",
+        "image_url": "https://downloads.openwrt.org/releases/25.12.6/targets/armsr/armv8/openwrt-25.12.6-armsr-armv8-generic-ext4-combined-efi.img.gz",
+        "image_sha256": "77a3802b583a6964ccb868c80f83a6ea0eb5847d3835350b5f0bcbf6f141d1d3",
+        "note": "armsr/armv8 under QEMU TCG: runs the same arm64 musl binaries as mediatek/filogic; packages are installed with their package arch added to the arch list"
+      }
+    }
+  },
+  "actions": {
+    "actions/checkout": {
+      "ref": "v4.2.2",
+      "sha": "11bd71901bbe5b1630ceea73d27597364c9af683"
+    },
+    "actions/setup-go": {
+      "ref": "v5.5.0",
+      "sha": "d35c59abb061a4a6fb18e82ac0862c26744d6ab5"
+    },
+    "actions/upload-artifact": {
+      "ref": "v4.6.2",
+      "sha": "ea165f8d65b6e75b540449e92b4886f43607fa02"
+    },
+    "actions/download-artifact": {
+      "ref": "v4.3.0",
+      "sha": "d3f86a106a0bac45b974a628896c90dbdf5c8093"
+    },
+    "actions/attest-build-provenance": {
+      "ref": "v2.4.0",
+      "sha": "e8998f949152b193b063cb0ec769d69d929409be"
+    }
+  }
+}

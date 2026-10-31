@@ -1,0 +1,10 @@
+{
+  "log": { "level": "warn" },
+  "inbounds": [
+    { "type": "socks", "tag": "in", "listen": "192.168.1.1", "listen_port": 1080 }
+  ],
+  "outbounds": [
+    { "type": "direct", "tag": "balanced", "wan_policy": "balanced" }
+  ],
+  "route": { "final": "balanced" }
+}

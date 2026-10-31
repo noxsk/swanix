@@ -1,0 +1,44 @@
+{
+	"admin/network/swanix": {
+		"title": "Multi-WAN (swanix)",
+		"order": 60,
+		"action": { "type": "firstchild" },
+		"depends": { "acl": [ "luci-app-swanix" ], "uci": { "swanix": true } }
+	},
+	"admin/network/swanix/overview": {
+		"title": "Overview",
+		"order": 10,
+		"action": { "type": "view", "path": "swanix/overview" }
+	},
+	"admin/network/swanix/wans": {
+		"title": "Lines",
+		"order": 20,
+		"action": { "type": "view", "path": "swanix/wans" }
+	},
+	"admin/network/swanix/policies": {
+		"title": "Policies",
+		"order": 30,
+		"action": { "type": "view", "path": "swanix/policies" }
+	},
+	"admin/network/swanix/health": {
+		"title": "Health checks",
+		"order": 40,
+		"action": { "type": "view", "path": "swanix/health" }
+	},
+	"admin/network/swanix/ipv6": {
+		"title": "IPv6",
+		"order": 50,
+		"action": { "type": "view", "path": "swanix/ipv6" }
+	},
+	"admin/network/swanix/proxy": {
+		"title": "Proxy",
+		"order": 60,
+		"action": { "type": "view", "path": "swanix/proxy" },
+		"depends": { "fs": { "/usr/libexec/swanix/full": "executable" } }
+	},
+	"admin/network/swanix/system": {
+		"title": "System / Diagnostics",
+		"order": 70,
+		"action": { "type": "view", "path": "swanix/system" }
+	}
+}

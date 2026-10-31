@@ -1,0 +1,77 @@
+# swanix configuration. Single source of truth for multi-WAN settings.
+# Installation default: disabled and observe-only (nothing is written to the kernel).
+
+config global 'global'
+	option config_version '1'
+	option enabled '0'
+	option startup_mode 'observe'
+	list lan_network 'lan'
+	option manage_router_traffic '1'
+	option default_policy 'balanced'
+	option flow_offload 'off'
+	option persist_history '0'
+	option confirm_timeout '90'
+	option update_interval '10'
+	option sample_interval '2'
+
+config kernel 'kernel'
+	option mark_mask '0xff000000'
+	option table_base '1000'
+	option priority_base '10000'
+	option nft_table 'swanix'
+	option control_socket '/var/run/swanix/control.sock'
+
+# Capacities below are examples, replace them with the real line rates (Mbps).
+config wan 'wan1'
+	option id '1'
+	option enabled '1'
+	option network 'wan'
+	option ipv6_network 'auto'
+	option download_mbps '500'
+	option upload_mbps '50'
+	option preference '100'
+	option role 'active'
+	option traffic_bias 'balanced'
+	option health 'health_default'
+
+config wan 'wan2'
+	option id '2'
+	option enabled '1'
+	option network 'wan2'
+	option ipv6_network 'auto'
+	option download_mbps '300'
+	option upload_mbps '30'
+	option preference '100'
+	option role 'active'
+	option traffic_bias 'balanced'
+	option health 'health_default'
+
+config health 'health_default'
+	list target '1.1.1.1:443'
+	list target '9.9.9.9:443'
+	list target '8.8.8.8:443'
+	option interval '5'
+	option timeout '3'
+	option successes_required '1'
+	option down_rounds '3'
+	option up_rounds '3'
+	option recover_ramp '30'
+
+config policy 'balanced'
+	list member 'wan1'
+	list member 'wan2'
+	option affinity 'connection'
+	# optional: 'source' or 'source_destination' keep a client (and destination) on one line
+	# for affinity_timeout seconds; 'saturation_threshold' (50-99 % of a line's configured
+	# bandwidth) sends new connections to lines below it while one line is that busy
+	#option saturation_threshold '90'
+	option unavailable_action 'reject'
+
+config ipv6 'ipv6'
+	option mode 'native'
+
+config proxy 'proxy'
+	option enabled '0'
+	option transparent_mode 'off'
+	# close the proxy's sockets on a line when it goes down, so mux/HTTP2 sessions redial elsewhere
+	option interrupt_on_down '1'

@@ -1,0 +1,35 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Multi-WAN (swanix)"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Lines"
+msgstr ""
+
+msgid "Policies"
+msgstr ""
+
+msgid "Health checks"
+msgstr ""
+
+msgid "IPv6"
+msgstr ""
+
+msgid "Proxy"
+msgstr ""
+
+msgid "System / Diagnostics"
+msgstr ""
+
+msgid "New-connection share"
+msgstr ""
+
+msgid "Confirm"
+msgstr ""
+
+msgid "Roll back now"
+msgstr ""

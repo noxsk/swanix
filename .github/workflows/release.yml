@@ -1,0 +1,101 @@
+name: release
+
+# Tag-triggered. The same run builds, tests, verifies the complete matrix and
+# only then signs and publishes. Nothing here is continue-on-error: a target
+# whose Full build fails blocks the whole release.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+env:
+  GOTOOLCHAIN: local
+  GOFLAGS: -mod=readonly
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: ci
+    uses: ./.github/workflows/build.yml
+
+  release:
+    needs: [ci, build]
+    runs-on: ubuntu-24.04
+    # protected environment: required reviewers, tag/branch rules, the signing secrets
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: The tag must be on the protected branch
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "tag is not reachable from main"; exit 1; }
+      - name: Tools
+        run: sudo apt-get update && sudo apt-get install -y zstd libncurses-dev gawk python3
+      - name: Install locked Go
+        run: echo "$(ci/build/install-go.sh "$RUNNER_TEMP/go-lock")" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: pkg-*
+          path: dl
+          merge-multiple: true
+      - name: Verify the complete matrix and the reviewed feature set
+        run: |
+          python3 ci/release/verify-matrix.py dl
+          for f in dl/meta/features-*-amd64.json; do
+            v=$(basename "$f" | sed 's/features-\(.*\)-amd64.json/\1/')
+            python3 ci/release/check-features.py "$f" "$v"
+          done
+      - name: Sign and index the feeds (SDK tooling, protected keys)
+        env:
+          IPK_SIGN_KEY: ${{ secrets.IPK_SIGN_KEY }}
+          IPK_SIGN_PUB: ${{ secrets.IPK_SIGN_PUB }}
+          APK_SIGN_KEY: ${{ secrets.APK_SIGN_KEY }}
+          APK_SIGN_PUB: ${{ secrets.APK_SIGN_PUB }}
+        run: |
+          set -eu
+          mkdir -p release
+          for series in 24.10 25.12; do
+            for target in x86/64 mediatek/filogic; do
+              arch=$(python3 -c "import json;print(json.load(open('ci/locks/lock.json'))['openwrt']['$series']['targets']['$target']['package_arch'])")
+              ci/release/sign-feed.sh "$series" "$target" "dl/$series/$target/$arch" release
+            done
+          done
+      - name: Source, metadata, checksums
+        env:
+          TEST_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          set -eu
+          mkdir -p release/source release/metadata
+          git archive --format=tar.gz --prefix="swanix-${GITHUB_REF_NAME#v}/" -o "release/source/swanix-${GITHUB_REF_NAME#v}.tar.gz" HEAD
+          cp ci/locks/lock.json ci/locks/full-tags.txt ci/locks/features.expected.json release/source/
+          cp LICENSE release/source/LICENSE
+          python3 ci/release/metadata.py dl release/metadata
+          (cd release && find . -type f ! -name SHA256SUMS | sort | xargs sha256sum > metadata/SHA256SUMS)
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
+        with:
+          subject-path: |
+            release/24.10/**/*.ipk
+            release/25.12/**/*.apk
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-tree
+          path: release
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "swanix $GITHUB_REF_NAME" \
+            --notes "Native OpenWrt packages (ipk for 24.10, apk for 25.12), Lite and Full. See metadata/test-report.json for what was and was not verified." \
+            release/metadata/* release/source/* $(find release/24.10 release/25.12 -type f)

@@ -1,0 +1,106 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: zh_Hans\n"
+
+msgid "Multi-WAN (swanix)"
+msgstr "多线路 (swanix)"
+
+msgid "Overview"
+msgstr "概览"
+
+msgid "Lines"
+msgstr "线路"
+
+msgid "Policies"
+msgstr "策略"
+
+msgid "Health checks"
+msgstr "健康检测"
+
+msgid "IPv6"
+msgstr "IPv6"
+
+msgid "Proxy"
+msgstr "代理"
+
+msgid "System / Diagnostics"
+msgstr "系统 / 诊断"
+
+msgid "Multi-WAN overview"
+msgstr "多线路概览"
+
+msgid "New-connection share"
+msgstr "新连接分配比例"
+
+msgid "\"New-connection share\" is how many new connections the scheduler hands to a line. It is not a bandwidth share: one connection always stays on one line."
+msgstr "“新连接分配比例”是调度器分给某条线路的新连接数量占比，不是带宽占比：单个连接始终只走一条线路。"
+
+msgid "Down / Up now"
+msgstr "当前下行 / 上行"
+
+msgid "Capacity"
+msgstr "配置容量"
+
+msgid "Probe RTT (base)"
+msgstr "探测 RTT（基线）"
+
+msgid "Probe failure rate"
+msgstr "探测失败率"
+
+msgid "Reason"
+msgstr "原因"
+
+msgid "Recent state changes"
+msgstr "最近状态变化"
+
+msgid "Confirm"
+msgstr "确认"
+
+msgid "Roll back now"
+msgstr "立即回滚"
+
+msgid "Confirm the new multi-WAN setup"
+msgstr "确认新的多线路配置"
+
+msgid "Switched to swanix. Confirm within the time limit or the previous setup is restored automatically."
+msgstr "已切换到 swanix。请在时限内确认，否则将自动恢复原有配置。"
+
+msgid "healthy"
+msgstr "正常"
+
+msgid "degraded"
+msgstr "质量下降"
+
+msgid "recovering"
+msgstr "恢复中"
+
+msgid "down"
+msgstr "中断"
+
+msgid "unknown"
+msgstr "未知"
+
+msgid "Close connections on a failed line"
+msgstr "线路故障时关闭其上的连接"
+
+msgid "When a line goes down, close the proxy connections that were dialled through it, so long-lived sessions (mux, HTTP/2, QUIC) reconnect over a healthy line at once instead of waiting for their own timeouts."
+msgstr "线路故障时关闭经由该线路建立的代理连接，使长连接（多路复用、HTTP/2、QUIC）立即通过健康线路重连，而不是等待各自超时。"
+
+msgid "Transparent takeover"
+msgstr "透明接管"
+
+msgid "With \"TUN\" the tun inbound in proxy.json (auto_route, without auto_redirect) takes the LAN traffic; swanix checks its rule priorities, routing table and marks against its own, and outbounds with wan_policy pick the line per connection."
+msgstr "选择“TUN”时，由 proxy.json 中的 tun 入站（auto_route，不开 auto_redirect）接管 LAN 流量；swanix 会核对其规则优先级、路由表与 mark 不与自身冲突，设置了 wan_policy 的出站按连接选择线路。"
+
+msgid "Off"
+msgstr "关闭"
+
+msgid "Saturation threshold (%)"
+msgstr "满载阈值（%）"
+
+msgid "Optional. When a line carries this share of its configured bandwidth and another member is below it, new connections go to the unsaturated lines; the line takes new connections again once it is 10 points below. 0 or empty: off."
+msgstr "可选。线路流量达到其配置带宽的该比例、且策略中还有未达阈值的线路时，新连接改走未满载的线路；回落到阈值以下 10 个百分点后恢复分配。0 或留空表示关闭。"
+
+msgid "per source + destination address"
+msgstr "按源地址 + 目的地址"

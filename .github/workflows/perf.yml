@@ -1,0 +1,69 @@
+name: perf
+
+# Performance measurements (manual). Nothing is gated on the numbers: they describe this
+# runner (veth links in network namespaces, one kernel) and are compared within one run.
+on:
+  workflow_dispatch:
+    inputs:
+      rounds:
+        description: rounds per load scenario (median is reported)
+        default: '3'
+
+permissions:
+  contents: read
+
+env:
+  GOTOOLCHAIN: local
+  GOFLAGS: -mod=readonly
+
+defaults:
+  run:
+    shell: bash   # -eo pipefail: a failing test is not hidden by tee
+
+jobs:
+  perf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Locked Go
+        run: echo "$(ci/build/install-go.sh "$RUNNER_TEMP/go-lock")" >> "$GITHUB_PATH"
+      - name: Tools
+        run: sudo apt-get update && sudo apt-get install -y nftables iproute2 python3
+      - name: Control-plane benchmarks
+        run: |
+          mkdir -p "$RUNNER_TEMP/perf"
+          go test -run '^$' -bench . -benchtime 2s ./experimental/multiwan/scheduler ./experimental/multiwan/kernel ./experimental/multiwan/engine \
+            | tee "$RUNNER_TEMP/perf/benchmarks.txt"
+      - name: Data path (baseline, overhead, balanced, stickiness, failover)
+        run: |
+          sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=readonly SWANIX_PERF=1 SWANIX_PERF_ROUNDS='${{ inputs.rounds }}' \
+            SWANIX_PERF_REPORT="$RUNNER_TEMP/perf/datapath.json" \
+            ci/test/netns.sh -tags mw_lite ./cmd/swanix -run TestPerfDataPath -timeout 50m -v | tee "$RUNNER_TEMP/perf/datapath.log"
+      - name: Weight updates under load
+        run: |
+          sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=readonly SWANIX_PERF=1 \
+            SWANIX_PERF_REPORT_KERNEL="$RUNNER_TEMP/perf/updates.json" \
+            ci/test/netns.sh ./experimental/multiwan/kernel -run TestPerfWeightUpdatesUnderLoad -v | tee "$RUNNER_TEMP/perf/updates.log"
+      - name: Full, kernel path vs TUN + wan_policy
+        run: |
+          # the namespace has no network: fetch and compile the Full build's modules first
+          # (as root, like the test: sudo uses root's module cache)
+          sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=readonly go build -tags with_gvisor -o /dev/null ./cmd/swanix
+          sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=readonly SWANIX_PERF=1 \
+            SWANIX_PERF_REPORT_FULL="$RUNNER_TEMP/perf/full.json" \
+            ci/test/netns.sh ./cmd/swanix -run TestPerfFullTUN -timeout 30m -v | tee "$RUNNER_TEMP/perf/full.log"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '## swanix performance'; echo; echo "runner: $(nproc) vCPU, $(uname -r)"; echo
+            echo '```'; grep -h 'PERF\|^Benchmark' "$RUNNER_TEMP"/perf/*.log "$RUNNER_TEMP"/perf/benchmarks.txt | sed 's/^ *//'; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: perf-report
+          path: ${{ runner.temp }}/perf

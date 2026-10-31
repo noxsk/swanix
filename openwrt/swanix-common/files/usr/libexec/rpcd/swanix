@@ -1,0 +1,118 @@
+#!/bin/sh
+# rpcd exec plugin: fixed methods only. Arguments are validated and passed as
+# separate words, never interpolated into a shell command line.
+
+SWANIX=/usr/bin/swanix
+RUNDIR=/var/run/swanix
+
+emit_text() {
+	# jshn is sourced in `call` only; `list` must work without it
+	# $1 ok(0/1) $2 text
+	json_init
+	json_add_boolean ok "$1"
+	json_add_string text "$2"
+	json_dump
+}
+
+case "$1" in
+list)
+	cat <<'JSON'
+{
+	"status": {},
+	"history": {},
+	"features": {},
+	"version": {},
+	"doctor": {},
+	"preview": {},
+	"check": {},
+	"prepare": {},
+	"restore": {},
+	"apply": { "timeout": 90 },
+	"confirm": {},
+	"rollback": {}
+}
+JSON
+	;;
+call)
+	. /usr/share/libubox/jshn.sh
+	method="$2"
+	input="$(cat)"
+	case "$method" in
+	status | history | features | version)
+		if out="$("$SWANIX" "$method" --json 2>&1)"; then
+			echo "$out"
+		else
+			emit_text 0 "$out"
+		fi
+		;;
+	doctor)
+		out="$("$SWANIX" doctor --json 2>/dev/null)"
+		rc=$?
+		[ -n "$out" ] || out='[]'
+		if [ $rc -eq 0 ]; then ok=true; else ok=false; fi
+		printf '{"ok":%s,"checks":%s}\n' "$ok" "$out"
+		;;
+	preview)
+		out="$("$SWANIX" preview 2>&1)"
+		rc=$?
+		emit_text $([ $rc -eq 0 ] && echo 1 || echo 0) "$out"
+		;;
+	check)
+		out="$("$SWANIX" check 2>&1)"
+		rc=$?
+		emit_text $([ $rc -eq 0 ] && echo 1 || echo 0) "$out"
+		;;
+	prepare)
+		# remember the configuration as it was before the operator's edit, so a
+		# rollback restores it
+		mkdir -p "$RUNDIR" && chmod 0750 "$RUNDIR"
+		if cp /etc/config/swanix "$RUNDIR/config.pre"; then
+			emit_text 1 "saved"
+		else
+			emit_text 0 "cannot save current configuration"
+		fi
+		;;
+	restore)
+		# put the pre-edit copy back (used when a staged change fails validation after it was committed)
+		if [ -f "$RUNDIR/config.pre" ] && cp "$RUNDIR/config.pre" /etc/config/swanix; then
+			rm -f "$RUNDIR/config.pre"
+			emit_text 1 "restored"
+		else
+			emit_text 0 "nothing to restore"
+		fi
+		;;
+	apply)
+		json_load "$input" 2>/dev/null
+		json_get_var timeout timeout
+		case "$timeout" in
+		'' | *[!0-9]*) timeout=90 ;;
+		esac
+		[ "$timeout" -ge 10 ] && [ "$timeout" -le 600 ] || timeout=90
+		mode=$(uci -q get swanix.global.startup_mode); en=$(uci -q get swanix.global.enabled)
+		if [ "$en" != 1 ] || [ "$mode" != manage ]; then
+			# nothing is written to the kernel in this state, so there is nothing to confirm:
+			# just (re)start or stop the daemon with the new configuration
+			if [ "$en" = 1 ]; then /etc/init.d/swanix restart >/dev/null 2>&1; msg="observe mode: daemon restarted, no kernel changes"; else /etc/init.d/swanix stop >/dev/null 2>&1; msg="disabled: daemon stopped"; fi
+			json_init; json_add_boolean ok 1; json_add_boolean confirm 0; json_add_string text "$msg"; json_dump
+			exit 0
+		fi
+		out="$("$SWANIX" apply --timeout "${timeout}s" 2>&1)"
+		rc=$?
+		emit_text $([ $rc -eq 0 ] && echo 1 || echo 0) "$out"
+		;;
+	confirm)
+		out="$("$SWANIX" confirm 2>&1)"
+		rc=$?
+		emit_text $([ $rc -eq 0 ] && echo 1 || echo 0) "$out"
+		;;
+	rollback)
+		out="$("$SWANIX" rollback 2>&1)"
+		rc=$?
+		emit_text $([ $rc -eq 0 ] && echo 1 || echo 0) "$out"
+		;;
+	*)
+		emit_text 0 "unknown method"
+		;;
+	esac
+	;;
+esac

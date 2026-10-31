@@ -1,0 +1,104 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GOTOOLCHAIN: local
+  GOFLAGS: -mod=readonly
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install locked Go
+        run: echo "$(ci/build/install-go.sh "$RUNNER_TEMP/go-lock")" >> "$GITHUB_PATH"
+      - name: Locks, pins, sample config
+        run: ci/validate/validate.py
+      - name: Lite links no proxy code
+        run: ci/validate/lite-deps.sh
+      - name: gofmt
+        run: |
+          out=$(gofmt -l cmd/swanix experimental/multiwan service/multiwan option/multiwan.go include/multiwan.go)
+          [ -z "$out" ] || { echo "$out"; exit 1; }
+      - name: Shell and JSON syntax
+        run: |
+          for f in ci/*/*.sh openwrt/swanix-common/files/etc/init.d/swanix openwrt/swanix-common/files/etc/hotplug.d/iface/90-swanix openwrt/swanix-common/files/usr/libexec/rpcd/swanix; do sh -n "$f"; done
+          python3 -m json.tool openwrt/luci-app-swanix/root/usr/share/luci/menu.d/luci-app-swanix.json > /dev/null
+          python3 -m json.tool openwrt/luci-app-swanix/root/usr/share/rpcd/acl.d/luci-app-swanix.json > /dev/null
+
+  core-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install locked Go
+        run: echo "$(ci/build/install-go.sh "$RUNNER_TEMP/go-lock")" >> "$GITHUB_PATH"
+      - name: vet (Lite and Full entries)
+        run: |
+          go vet -tags mw_lite ./cmd/swanix ./experimental/multiwan/...
+          go vet ./cmd/swanix ./service/multiwan ./common/dialer ./ci/test/vm/isp6 ./ci/test/perf/perfload
+      - name: Unit tests with the race detector
+        run: go test -race -count=1 ./experimental/multiwan/... ./ci/test/vm/isp6
+
+  netns-integration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install locked Go
+        run: echo "$(ci/build/install-go.sh "$RUNNER_TEMP/go-lock")" >> "$GITHUB_PATH"
+      - name: Tools
+        run: sudo apt-get update && sudo apt-get install -y iproute2 nftables python3
+      - name: Kernel data path (two ISPs + LAN in network namespaces)
+        run: sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=readonly ci/test/netns.sh ./experimental/multiwan/kernel -v
+      - name: Lite daemon end to end
+        run: sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=readonly ci/test/netns.sh -tags mw_lite ./cmd/swanix -run "LiteDaemon|LiteSaturation" -v
+      - name: apply / confirm / rollback with the out-of-process guard
+        run: sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=readonly ci/test/netns.sh -tags mw_lite ./cmd/swanix -run ApplyConfirmRollback -v
+      - name: Full runtime with wan_policy
+        run: sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=readonly ci/test/netns.sh ./cmd/swanix -run "FullProxy|FullTUN" -v
+
+  luci-render:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: LuCI's own JS runtime at the locked commit
+        run: |
+          set -eu
+          commit=$(python3 -c "import json;print(json.load(open('ci/locks/lock.json'))['openwrt']['25.12']['feeds']['luci']['commit'])")
+          git init -q "$RUNNER_TEMP/luci"
+          git -C "$RUNNER_TEMP/luci" remote add origin https://github.com/openwrt/luci.git
+          git -C "$RUNNER_TEMP/luci" sparse-checkout set modules/luci-base/htdocs
+          git -C "$RUNNER_TEMP/luci" fetch -q --depth=1 origin "$commit"
+          git -C "$RUNNER_TEMP/luci" checkout -q FETCH_HEAD
+      - name: Headless browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pw" playwright@1.63.0
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Render every view against a stubbed ubus backend
+        run: |
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" node ci/test/luci/render.js \
+            "$RUNNER_TEMP/luci/modules/luci-base/htdocs/luci-static/resources" "$RUNNER_TEMP/shots"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: luci-screenshots
+          path: ${{ runner.temp }}/shots
