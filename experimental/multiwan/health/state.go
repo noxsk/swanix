@@ -53,6 +53,7 @@ type Machine struct {
 	state       State
 	fail, ok    int
 	delayRounds int // consecutive impaired rounds while Healthy
+	cleanRounds int // consecutive normal rounds while Degraded
 	since       time.Time
 	reason      string
 	recoveryAt  time.Time
@@ -81,7 +82,7 @@ func (m *Machine) set(now time.Time, to State, reason string) *Transition {
 	}
 	t := &Transition{At: now, From: m.state, To: to, Reason: reason}
 	m.state, m.since, m.reason = to, now, reason
-	m.fail, m.ok, m.delayRounds = 0, 0, 0
+	m.fail, m.ok, m.delayRounds, m.cleanRounds = 0, 0, 0, 0
 	if to == Recovering {
 		m.recoveryAt = now
 	}
@@ -143,7 +144,12 @@ func (m *Machine) Observe(now time.Time, roundOK, degraded bool) *Transition {
 			return m.set(now, Down, "probes failing")
 		}
 		if roundOK && !degraded {
-			return m.set(now, Healthy, "quality restored")
+			m.cleanRounds++
+			if m.cleanRounds >= 2 {
+				return m.set(now, Healthy, "quality restored")
+			}
+		} else {
+			m.cleanRounds = 0
 		}
 	case Down:
 		if m.ok >= m.p.UpRounds {

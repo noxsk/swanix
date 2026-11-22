@@ -10,6 +10,7 @@ return view.extend({
 	},
 
 	render: function(data) {
+		var chartMode = 'interfaces';
 		var root = E('div', { 'class': 'cbi-map' }, [
 			E('h2', {}, _('Multi-WAN overview')),
 			E('div', { 'class': 'cbi-map-descr' }, _('"New-connection share" is how many new connections the scheduler hands to a line. It is not a bandwidth share: one connection always stays on one line.'))
@@ -24,7 +25,7 @@ return view.extend({
 				dom.content(body, nodes);
 				return;
 			}
-			nodes.push(E('p', {}, [ _('Profile') + ': ', E('strong', {}, st.profile), ' · ', _('Mode') + ': ', E('strong', {}, st.mode),
+			nodes.push(E('p', {}, [ _('Profile') + ': ', E('strong', {}, st.profile), ' · ', _('Mode') + ': ', E('strong', {}, _(st.mode)),
 				' · ', st.managing ? _('managing the kernel data path') : _('observe only: nothing is written to the kernel, health comes from netifd link state') ]));
 			(st.problems || []).forEach(function(p) { nodes.push(E('div', { 'class': 'alert-message warning' }, p)); });
 
@@ -48,7 +49,7 @@ return view.extend({
 						E('td', { 'class': 'td' }, f.rtt_ms ? f.rtt_ms.toFixed(0) + ' ms (' + f.base_rtt_ms.toFixed(0) + ')' : '-'),
 						E('td', { 'class': 'td' }, (f.probe_failure_rate * 100).toFixed(0) + ' %'),
 						E('td', { 'class': 'td' }, share || '-'),
-						E('td', { 'class': 'td' }, f.reason || '')
+						E('td', { 'class': 'td' }, _(f.reason || ''))
 					]));
 				});
 			});
@@ -56,15 +57,26 @@ return view.extend({
 			if (st.rejected_connections > 0)
 				nodes.push(E('p', {}, _('Rejected new connections (no usable line): ') + st.rejected_connections));
 
-			nodes.push(E('h3', {}, _('Download (last hour, 5 s resolution)')));
-			nodes.push(sx.historyChart(hist, 'rx_mbps'));
-			nodes.push(E('h3', {}, _('Upload')));
-			nodes.push(sx.historyChart(hist, 'tx_mbps'));
+			var charts = E('div', { 'id': 'swanix-traffic-charts' });
+			var drawCharts = function() {
+				dom.content(charts, [
+					E('h3', {}, _('Download (last hour, 5 s resolution)')), sx.historyChart(hist, 'rx_mbps', chartMode),
+					E('h3', {}, _('Upload')), sx.historyChart(hist, 'tx_mbps', chartMode)
+				]);
+			};
+			nodes.push(E('label', {}, [ _('Traffic chart mode') + ': ', E('select', {
+				'id': 'swanix-traffic-mode', 'change': function(ev) { chartMode = ev.target.value; drawCharts(); }
+			}, [
+				E('option', { value: 'total', selected: chartMode === 'total' ? '' : null }, _('Total traffic')),
+				E('option', { value: 'interfaces', selected: chartMode === 'interfaces' ? '' : null }, _('By interface'))
+			]) ]));
+			drawCharts();
+			nodes.push(charts);
 
 			nodes.push(E('h3', {}, _('Recent state changes')));
 			var tr = (st.recent_transitions || []).slice().reverse().slice(0, 15);
 			nodes.push(tr.length ? E('ul', {}, tr.map(function(t) {
-				return E('li', {}, [ new Date(t.at).toLocaleTimeString(), ' ', t.wan, ' IPv', t.family, ': ', t.from, ' → ', t.to, ' (', t.reason, ')' ]);
+				return E('li', {}, [ new Date(t.at).toLocaleTimeString(), ' ', t.wan, ' IPv', t.family, ': ', _(t.from), ' → ', _(t.to), ' (', _(t.reason), ')' ]);
 			})) : E('p', { 'class': 'cbi-value-description' }, _('None since start.')));
 			dom.content(body, nodes);
 		};

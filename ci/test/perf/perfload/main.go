@@ -157,6 +157,7 @@ type connectResult struct {
 	CPS         float64        `json:"connections_per_second"`
 	P50ms       float64        `json:"latency_p50_ms"`
 	P90ms       float64        `json:"latency_p90_ms"`
+	P95ms       float64        `json:"latency_p95_ms"`
 	P99ms       float64        `json:"latency_p99_ms"`
 	Maxms       float64        `json:"latency_max_ms"`
 }
@@ -227,14 +228,21 @@ func connect(args []string) error {
 	}
 	res.OK = len(lat)
 	res.CPS = float64(res.OK) / secs
-	if len(lat) > 0 {
-		sort.Slice(lat, func(i, j int) bool { return lat[i] < lat[j] })
-		pct := func(p float64) float64 {
-			return float64(lat[int(p*float64(len(lat)-1))]) / float64(time.Millisecond)
-		}
-		res.P50ms, res.P90ms, res.P99ms, res.Maxms = pct(0.50), pct(0.90), pct(0.99), pct(1)
-	}
+	res.setLatencies(lat)
 	return json.NewEncoder(os.Stdout).Encode(res)
+}
+
+// setLatencies preserves the existing lower-index empirical quantile convention.
+// These are successful connect+banner durations, not RTT or failed attempts.
+func (r *connectResult) setLatencies(lat []time.Duration) {
+	if len(lat) == 0 {
+		return
+	}
+	sort.Slice(lat, func(i, j int) bool { return lat[i] < lat[j] })
+	pct := func(p float64) float64 {
+		return float64(lat[int(p*float64(len(lat)-1))]) / float64(time.Millisecond)
+	}
+	r.P50ms, r.P90ms, r.P95ms, r.P99ms, r.Maxms = pct(.50), pct(.90), pct(.95), pct(.99), pct(1)
 }
 
 type bulkResult struct {

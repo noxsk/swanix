@@ -1,0 +1,18 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/sagernet/sing-box/experimental/multiwan/scheduler
+cpu: Apple M4
+BenchmarkObjectives/capacity-10         	  266646	      1286 ns/op	    2240 B/op	      30 allocs/op
+BenchmarkObjectives/capacity-10         	  281923	      1262 ns/op	    2240 B/op	      30 allocs/op
+BenchmarkObjectives/capacity-10         	  284371	      1291 ns/op	    2240 B/op	      30 allocs/op
+BenchmarkObjectives/latency-10          	  256279	      1428 ns/op	    2896 B/op	      35 allocs/op
+BenchmarkObjectives/latency-10          	  257374	      1417 ns/op	    2896 B/op	      35 allocs/op
+BenchmarkObjectives/latency-10          	  251343	      1424 ns/op	    2896 B/op	      35 allocs/op
+BenchmarkObjectives/throughput-10       	  249576	      1536 ns/op	    2896 B/op	      35 allocs/op
+BenchmarkObjectives/throughput-10       	  226550	      1460 ns/op	    2896 B/op	      35 allocs/op
+BenchmarkObjectives/throughput-10       	  240591	      1481 ns/op	    2896 B/op	      35 allocs/op
+BenchmarkObjectives/balanced-10         	  257313	      1386 ns/op	    2896 B/op	      35 allocs/op
+BenchmarkObjectives/balanced-10         	  258448	      1456 ns/op	    2896 B/op	      35 allocs/op
+BenchmarkObjectives/balanced-10         	  239511	      1610 ns/op	    2896 B/op	      35 allocs/op
+PASS
+ok  	github.com/sagernet/sing-box/experimental/multiwan/scheduler	4.946s

@@ -38,7 +38,7 @@ func Preview(cfg *config.Config, src netif.Source) (*kernel.Input, *netif.Snapsh
 				in = append(in, scheduler.Input{ID: w.ID, State: state, Role: w.Role, DownMbps: w.DownloadMbps,
 					UpMbps: w.UploadMbps, Preference: w.Preference, Bias: w.TrafficBias})
 			}
-			shares[pol.Name][fam] = scheduler.New(scheduler.Params{}).Step(in).Shares
+			shares[pol.Name][fam] = scheduler.New(scheduler.ParamsForPolicy(pol)).Step(in).Shares
 		}
 	}
 	return &kernel.Input{Cfg: cfg, WANs: snap.WANs, LAN: snap.LAN, Shares: shares}, snap, nil

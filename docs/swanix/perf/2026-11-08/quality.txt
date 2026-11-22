@@ -1,0 +1,26 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/sagernet/sing-box/experimental/multiwan/health
+cpu: Apple M4
+BenchmarkQualityRing/20/legacy         	 3099550	       135.5 ns/op	      55 B/op	       0 allocs/op
+BenchmarkQualityRing/20/legacy         	 2760890	       142.3 ns/op	      55 B/op	       0 allocs/op
+BenchmarkQualityRing/20/legacy         	 2340076	       129.3 ns/op	      55 B/op	       0 allocs/op
+BenchmarkQualityRing/20/legacy         	 2367946	       147.2 ns/op	      55 B/op	       0 allocs/op
+BenchmarkQualityRing/20/legacy         	 2289430	       156.2 ns/op	      55 B/op	       0 allocs/op
+BenchmarkQualityRing/20/optimized      	13650819	        37.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQualityRing/20/optimized      	 9857971	        30.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQualityRing/20/optimized      	11157283	        29.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQualityRing/20/optimized      	14309989	        31.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQualityRing/20/optimized      	12473868	        30.21 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQualityRing/2000/legacy       	   71439	      5775 ns/op	     108 B/op	       0 allocs/op
+BenchmarkQualityRing/2000/legacy       	   45787	      7484 ns/op	     109 B/op	       0 allocs/op
+BenchmarkQualityRing/2000/legacy       	   50192	      7122 ns/op	     108 B/op	       0 allocs/op
+BenchmarkQualityRing/2000/legacy       	   49965	      7851 ns/op	     108 B/op	       0 allocs/op
+BenchmarkQualityRing/2000/legacy       	   52518	      7875 ns/op	     109 B/op	       0 allocs/op
+BenchmarkQualityRing/2000/optimized    	 9842373	        36.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQualityRing/2000/optimized    	17760674	        33.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQualityRing/2000/optimized    	12936920	        32.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQualityRing/2000/optimized    	15454539	        30.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQualityRing/2000/optimized    	10971849	        29.41 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/sagernet/sing-box/experimental/multiwan/health	11.208s

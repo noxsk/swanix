@@ -131,3 +131,37 @@ func TestLoadedDelayIsNotImpairment(t *testing.T) {
 		t.Fatal("idle probe traffic is not load")
 	}
 }
+
+// Different probe destinations have different propagation delays. Compare the
+// round median with historical round medians, not the fastest destination.
+func TestQualityStableMixedTargets(t *testing.T) {
+	q := NewQuality(20)
+	for i := 0; i < 30; i++ {
+		q.Push(RoundResult{Targets: []TargetResult{
+			{OK: true, RTT: 5 * time.Millisecond},
+			{OK: true, RTT: 100 * time.Millisecond},
+			{OK: true, RTT: 110 * time.Millisecond},
+		}})
+	}
+	if q.BaseRTT() != 100*time.Millisecond || q.Slow(100*time.Millisecond) {
+		t.Fatalf("stable destinations misclassified: baseline=%v slow=%v", q.BaseRTT(), q.Slow(100*time.Millisecond))
+	}
+	if !q.Slow(400 * time.Millisecond) {
+		t.Fatal("sustained latency increase must remain detectable")
+	}
+}
+
+func TestQualityWindowCountsRounds(t *testing.T) {
+	q := NewQuality(3)
+	q.Push(RoundResult{Targets: []TargetResult{{OK: true, RTT: 10 * time.Millisecond}}})
+	for i := 0; i < 2; i++ {
+		q.Push(RoundResult{Targets: []TargetResult{{OK: true, RTT: 100 * time.Millisecond}, {OK: true, RTT: 100 * time.Millisecond}, {OK: true, RTT: 100 * time.Millisecond}}})
+	}
+	if q.BaseRTT() != 10*time.Millisecond {
+		t.Fatalf("baseline expired before three rounds: %v", q.BaseRTT())
+	}
+	q.Push(RoundResult{Targets: []TargetResult{{OK: true, RTT: 100 * time.Millisecond}}})
+	if q.BaseRTT() != 100*time.Millisecond {
+		t.Fatalf("old baseline did not expire: %v", q.BaseRTT())
+	}
+}

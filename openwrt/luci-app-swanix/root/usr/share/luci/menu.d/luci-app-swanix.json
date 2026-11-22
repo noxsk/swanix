@@ -15,6 +15,11 @@
 		"order": 20,
 		"action": { "type": "view", "path": "swanix/wans" }
 	},
+	"admin/network/swanix/interface_history": {
+		"title": "Interface history",
+		"order": 25,
+		"action": { "type": "view", "path": "swanix/interface_history" }
+	},
 	"admin/network/swanix/policies": {
 		"title": "Policies",
 		"order": 30,

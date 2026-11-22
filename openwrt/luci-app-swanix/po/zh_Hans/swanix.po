@@ -3,44 +3,242 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Language: zh_Hans\n"
 
-msgid "Multi-WAN (swanix)"
-msgstr "多线路 (swanix)"
-
-msgid "Overview"
-msgstr "概览"
-
-msgid "Lines"
-msgstr "线路"
-
-msgid "Policies"
-msgstr "策略"
-
-msgid "Health checks"
-msgstr "健康检测"
-
-msgid "IPv6"
-msgstr "IPv6"
-
-msgid "Proxy"
-msgstr "代理"
-
-msgid "System / Diagnostics"
-msgstr "系统 / 诊断"
-
-msgid "Multi-WAN overview"
-msgstr "多线路概览"
-
-msgid "New-connection share"
-msgstr "新连接分配比例"
-
 msgid "\"New-connection share\" is how many new connections the scheduler hands to a line. It is not a bandwidth share: one connection always stays on one line."
 msgstr "“新连接分配比例”是调度器分给某条线路的新连接数量占比，不是带宽占比：单个连接始终只走一条线路。"
+
+msgid "80 or 8000-8100; needs TCP or UDP"
+msgstr "例如 80 或 8000-8100；需选择 TCP 或 UDP"
+
+msgid "A policy is a pool of lines. Every new connection picks a line once and keeps it. Unmatched traffic uses the default policy."
+msgstr "策略由一组线路组成。每个新连接选择一条线路，并在整个连接期间保持不变。未匹配规则的流量使用默认策略。"
+
+msgid "Also translate the router's own connections"
+msgstr "同时转换路由器自身连接的地址"
+
+msgid "Scheduling objective"
+msgstr "调度目标"
+
+msgid "Capacity (compatible default)"
+msgstr "容量优先（兼容默认行为）"
+
+msgid "Low latency"
+msgstr "延迟优先"
+
+msgid "High throughput"
+msgstr "吞吐优先"
+
+msgid "Balanced latency and throughput"
+msgstr "延迟与吞吐权衡"
+
+msgid "Reference transfer size (KiB)"
+msgstr "参考传输量（KiB）"
+
+msgid "Used only by balanced to estimate transfer completion time. This is a configured reference size, not automatic flow-size detection."
+msgstr "仅用于权衡模式估计传输完成时间。这是配置的参考传输量，不会自动识别连接大小。"
+
+msgid "Low-latency capacity soft reserve (%)"
+msgstr "低延迟线路容量软预留（%）"
+
+msgid "Used only by throughput. Softly reserves low-latency capacity when selecting new connections; this is not SQM or rate limiting. 0 disables the reserve."
+msgstr "仅用于吞吐优先模式，在分配新连接时为低延迟线路软性保留余量；这不是 SQM 或限速，也不保证带宽。0 表示关闭。"
+
+msgid "Build"
+msgstr "构建信息"
+
+msgid "Build tags"
+msgstr "构建标签"
+
+msgid "Capacities must be the real line rates you can use. They steer the scheduler; the interface link speed is deliberately not used. The example values shipped with the package are not your line rates."
+msgstr "请填写线路实际可用的带宽，调度器将以此为依据，不使用网口协商速率。软件包中的示例值不代表您的实际带宽。"
+
+msgid "Capacity"
+msgstr "配置容量"
+
+msgid "Check"
+msgstr "检查项"
+
+msgid "Close connections on a failed line"
+msgstr "线路故障时关闭其上的连接"
+
+msgid "Compiled-in proxy features"
+msgstr "已编译的代理功能"
+
+msgid "Confirm"
+msgstr "确认"
+
+msgid "Confirm the new multi-WAN setup"
+msgstr "确认新的多线路配置"
+
+msgid "Default policy"
+msgstr "默认策略"
+
+msgid "Destination"
+msgstr "目标地址"
+
+msgid "Destination ports"
+msgstr "目标端口"
+
+msgid "Detail"
+msgstr "详情"
 
 msgid "Down / Up now"
 msgstr "当前下行 / 上行"
 
-msgid "Capacity"
-msgstr "配置容量"
+msgid "Download (Mbps)"
+msgstr "下行带宽（Mbps）"
+
+msgid "Download (last hour, 5 s resolution)"
+msgstr "下行流量（最近一小时，每 5 秒采样）"
+
+msgid "No traffic history yet. Waiting for samples."
+msgstr "暂无流量历史，正在等待采样。"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "Enable the proxy runtime"
+msgstr "启用代理服务"
+
+msgid "Enabled"
+msgstr "已启用"
+
+msgid "Failed rounds before down"
+msgstr "判定中断所需的连续失败轮数"
+
+msgid "Family"
+msgstr "地址族"
+
+msgid "Fork commit"
+msgstr "本项目提交"
+
+msgid "Global"
+msgstr "全局设置"
+
+msgid "Good rounds before recovery"
+msgstr "开始恢复所需的连续成功轮数"
+
+msgid "Health checks"
+msgstr "健康检测"
+
+msgid "Health profile"
+msgstr "健康检测配置"
+
+msgid "How to fix"
+msgstr "修复方法"
+
+msgid "ID"
+msgstr "编号"
+
+msgid "IPv4 and IPv6 are scheduled independently: a line can be healthy for one family and down for the other."
+msgstr "IPv4 和 IPv6 独立调度：同一条线路可能在一种地址族下正常，而在另一种地址族下中断。"
+
+msgid "IPv4 link down or no address"
+msgstr "IPv4 链路未连接或未获取地址"
+
+msgid "IPv6"
+msgstr "IPv6"
+
+msgid "IPv6 interface"
+msgstr "IPv6 接口"
+
+msgid "IPv6 mode"
+msgstr "IPv6 模式"
+
+msgid "IPv6 unavailable (no interface, address or default route)"
+msgstr "IPv6 不可用（缺少接口、地址或默认路由）"
+
+msgid "Independent targets, not consecutive rounds."
+msgstr "指独立探测目标的数量，而非连续成功的轮数。"
+
+msgid "Installed disabled. Enabling does not take over the network until you apply."
+msgstr "安装后默认关闭。启用并应用配置后才会接管网络。"
+
+msgid "Interface"
+msgstr "接口"
+
+msgid "Interval (s)"
+msgstr "探测间隔（秒）"
+
+msgid "Line"
+msgstr "线路"
+
+msgid "Lines"
+msgstr "线路"
+
+msgid "Lines (WAN)"
+msgstr "线路（WAN）"
+
+msgid "Lower numbers match first."
+msgstr "数值越小，越先匹配。"
+
+msgid "Manage the router's own outgoing traffic"
+msgstr "管理路由器自身发出的流量"
+
+msgid "Managed LAN networks"
+msgstr "受管理的 LAN 网络"
+
+msgid "Member lines"
+msgstr "成员线路"
+
+msgid "Mode"
+msgstr "模式"
+
+msgid "Multi-WAN (swanix)"
+msgstr "多线路 (swanix)"
+
+msgid "Multi-WAN overview"
+msgstr "多线路概览"
+
+msgid "NAT66 source prefixes"
+msgstr "NAT66 源地址前缀"
+
+msgid "Name"
+msgstr "名称"
+
+msgid "New-connection share"
+msgstr "新连接分配比例"
+
+msgid "None since start."
+msgstr "启动后暂无变化。"
+
+msgid "Off"
+msgstr "关闭"
+
+msgid "OpenWrt series"
+msgstr "OpenWrt 系列"
+
+msgid "Optional. With fresh load data and an unsaturated alternative, gradually discount a saturated line's score by at most half. Health, recovery and step limits still apply; no forced 1% share. The saturation flag clears 10 points below the threshold. 0 or empty: off."
+msgstr "可选。负载数据新鲜且存在未饱和替代线路时，逐步降低饱和线路评分，最多折半；保留健康、恢复和步长限制，不强制降至1%份额。利用率低于阈值10个百分点后清除饱和标志。0或留空表示关闭。"
+
+msgid "Overview"
+msgstr "概览"
+
+msgid "Per connection spreads best. Sticky modes keep a client on its line across connections while that line is usable, which reduces balancing for that client."
+msgstr "按连接分配的均衡效果最佳。粘滞模式会在线路可用时让同一客户端的多个连接保持使用该线路，因此该客户端的流量均衡程度会降低。"
+
+msgid "Platform"
+msgstr "平台"
+
+msgid "Policies"
+msgstr "策略"
+
+msgid "Policies and rules"
+msgstr "策略与规则"
+
+msgid "Policy"
+msgstr "策略"
+
+msgid "Preference"
+msgstr "权重"
+
+msgid "Press \"Preview\" to see the rules that would be installed."
+msgstr "点击“预览”查看将要安装的规则。"
+
+msgid "Preview"
+msgstr "预览"
+
+msgid "Priority"
+msgstr "优先级"
 
 msgid "Probe RTT (base)"
 msgstr "探测 RTT（基线）"
@@ -48,59 +246,362 @@ msgstr "探测 RTT（基线）"
 msgid "Probe failure rate"
 msgstr "探测失败率"
 
+msgid "Probe targets must be IP addresses so name resolution can never be answered through another line. The failure rate shown on the overview is the probe failure ratio, not link packet loss."
+msgstr "探测目标必须使用 IP 地址，避免域名解析经由其他线路完成。概览中的探测失败率是探测请求的失败比例，并非线路丢包率。"
+
+msgid "Profile"
+msgstr "运行版本"
+
+msgid "Profiles"
+msgstr "检测配置"
+
+msgid "Protocol"
+msgstr "协议"
+
+msgid "Proxy"
+msgstr "代理"
+
+msgid "Proxy (Full build)"
+msgstr "代理（完整版本）"
+
+msgid "Proxy configuration file"
+msgstr "代理配置文件"
+
 msgid "Reason"
 msgstr "原因"
 
 msgid "Recent state changes"
 msgstr "最近状态变化"
 
-msgid "Confirm"
-msgstr "确认"
+msgid "Recovery ramp (s)"
+msgstr "恢复过渡时间（秒）"
+
+msgid "Rejected new connections (no usable line): "
+msgstr "因无可用线路而拒绝的新连接数："
+
+msgid "Relative weight, default 100. Not a capacity."
+msgstr "相对权重，默认为 100，不代表线路带宽。"
+
+msgid "Required for nat66. Only these LAN prefixes are translated."
+msgstr "NAT66 模式下必填，仅转换这些 LAN 前缀的地址。"
+
+msgid "Resource plan"
+msgstr "资源规划"
+
+msgid "Result"
+msgstr "结果"
+
+msgid "Role"
+msgstr "线路角色"
 
 msgid "Roll back now"
 msgstr "立即回滚"
 
-msgid "Confirm the new multi-WAN setup"
-msgstr "确认新的多线路配置"
+msgid "Router-originated traffic only"
+msgstr "仅匹配路由器自身发出的流量"
 
-msgid "Switched to swanix. Confirm within the time limit or the previous setup is restored automatically."
-msgstr "已切换到 swanix。请在时限内确认，否则将自动恢复原有配置。"
-
-msgid "healthy"
-msgstr "正常"
-
-msgid "degraded"
-msgstr "质量下降"
-
-msgid "recovering"
-msgstr "恢复中"
-
-msgid "down"
-msgstr "中断"
-
-msgid "unknown"
-msgstr "未知"
-
-msgid "Close connections on a failed line"
-msgstr "线路故障时关闭其上的连接"
-
-msgid "When a line goes down, close the proxy connections that were dialled through it, so long-lived sessions (mux, HTTP/2, QUIC) reconnect over a healthy line at once instead of waiting for their own timeouts."
-msgstr "线路故障时关闭经由该线路建立的代理连接，使长连接（多路复用、HTTP/2、QUIC）立即通过健康线路重连，而不是等待各自超时。"
-
-msgid "Transparent takeover"
-msgstr "透明接管"
-
-msgid "With \"TUN\" the tun inbound in proxy.json (auto_route, without auto_redirect) takes the LAN traffic; swanix checks its rule priorities, routing table and marks against its own, and outbounds with wan_policy pick the line per connection."
-msgstr "选择“TUN”时，由 proxy.json 中的 tun 入站（auto_route，不开 auto_redirect）接管 LAN 流量；swanix 会核对其规则优先级、路由表与 mark 不与自身冲突，设置了 wan_policy 的出站按连接选择线路。"
-
-msgid "Off"
-msgstr "关闭"
+msgid "Rules"
+msgstr "规则"
 
 msgid "Saturation threshold (%)"
 msgstr "满载阈值（%）"
 
-msgid "Optional. When a line carries this share of its configured bandwidth and another member is below it, new connections go to the unsaturated lines; the line takes new connections again once it is 10 points below. 0 or empty: off."
-msgstr "可选。线路流量达到其配置带宽的该比例、且策略中还有未达阈值的线路时，新连接改走未满载的线路；回落到阈值以下 10 个百分点后恢复分配。0 或留空表示关闭。"
+msgid "Source"
+msgstr "源地址"
+
+msgid "Stable number 1–14. Never changes when lines are reordered."
+msgstr "固定编号，范围为 1–14，调整线路顺序时保持不变。"
+
+msgid "State"
+msgstr "状态"
+
+msgid "Stickiness"
+msgstr "连接粘滞方式"
+
+msgid "Stickiness timeout (s)"
+msgstr "粘滞超时时间（秒）"
+
+msgid "Switched to swanix. Confirm within the time limit or the previous setup is restored automatically."
+msgstr "已切换到 swanix。请在时限内确认，否则将自动恢复原有配置。"
+
+msgid "System / Diagnostics"
+msgstr "系统 / 诊断"
+
+msgid "System check (doctor)"
+msgstr "系统诊断"
+
+msgid "TUN"
+msgstr "TUN"
+
+msgid "Targets"
+msgstr "探测目标"
+
+msgid "Targets that must answer per round"
+msgstr "每轮至少需响应的目标数"
+
+msgid "The name \"%s\" is already in use. Names must be unique across lines, policies, rules and health profiles. Choose another name, for example \"%s\"."
+msgstr "名称“%s”已被使用。线路、策略、规则和健康检测配置的名称不能重复。请换一个名称，例如“%s”。"
+
+msgid "The proxy configuration itself lives in /etc/swanix/proxy.json and is never rewritten by this page. Set wan_policy on an outbound there to let it pick a line per connection."
+msgstr "代理配置保存在 /etc/swanix/proxy.json，本页面不会改写该文件。在其中为出站设置 wan_policy，即可按连接选择线路。"
+
+msgid "The swanix daemon is not running."
+msgstr "swanix 服务未运行。"
+
+msgid "Time over which a recovered line is brought back to full share."
+msgstr "线路恢复后，在此时间内逐步恢复到完整的流量分配比例。"
+
+msgid "Timeout (s)"
+msgstr "超时时间（秒）"
+
+msgid "Traffic bias"
+msgstr "流量偏好"
+
+msgid "Transparent takeover"
+msgstr "透明接管"
+
+msgid "Upload"
+msgstr "上行流量"
+
+msgid "Upload (Mbps)"
+msgstr "上行带宽（Mbps）"
+
+msgid "Upstream"
+msgstr "上游版本"
+
+msgid "Verified scope"
+msgstr "已验证范围"
+
+msgid "Version"
+msgstr "版本"
+
+msgid "When a line goes down, close the proxy connections that were dialled through it, so long-lived sessions (mux, HTTP/2, QUIC) reconnect over a healthy line at once instead of waiting for their own timeouts."
+msgstr "线路故障时关闭经由该线路建立的代理连接，使长连接（多路复用、HTTP/2、QUIC）立即通过健康线路重连，而不是等待各自超时。"
+
+msgid "When no line is usable"
+msgstr "无可用线路时的处理方式"
+
+msgid "With \"TUN\" the tun inbound in proxy.json (auto_route, without auto_redirect) takes the LAN traffic; swanix checks its rule priorities, routing table and marks against its own, and outbounds with wan_policy pick the line per connection."
+msgstr "选择“TUN”时，由 proxy.json 中的 tun 入站（auto_route，不开 auto_redirect）接管 LAN 流量；swanix 会核对其规则优先级、路由表与 mark 不与自身冲突，设置了 wan_policy 的出站按连接选择线路。"
+
+msgid "active — shares traffic"
+msgstr "主用线路：参与流量分配"
+
+msgid "any"
+msgstr "任意"
+
+msgid "auto, none, or a logical interface"
+msgstr "填写 auto（自动）、none（禁用）或逻辑接口名称"
+
+msgid "backup — only when no active line is usable"
+msgstr "备用线路：仅在所有主用线路不可用时使用"
+
+msgid "balanced"
+msgstr "均衡"
+
+msgid "degraded"
+msgstr "质量下降"
+
+msgid "down"
+msgstr "中断"
+
+msgid "download"
+msgstr "偏向下行"
+
+msgid "fail"
+msgstr "失败"
+
+msgid "healthy"
+msgstr "正常"
+
+msgid "ip:port, [ipv6]:port or http(s)://ip/path"
+msgstr "格式：IP:端口、[IPv6]:端口 或 http(s)://IP/路径"
+
+msgid "latency or loss above threshold"
+msgstr "延迟或丢包超过阈值"
+
+msgid "link up, waiting for probes"
+msgstr "链路已连接，等待探测结果"
+
+msgid "manage"
+msgstr "管理模式"
+
+msgid "manage — take over routing (confirm window applies)"
+msgstr "管理模式：接管路由（需在确认时限内确认）"
+
+msgid "managing the kernel data path"
+msgstr "正在管理内核转发路径"
+
+msgid "nat66 — per-connection balancing with translation (authorised prefixes only)"
+msgstr "NAT66：通过地址转换按连接均衡（仅限指定前缀）"
+
+msgid "native — no translation; the source prefix decides the line"
+msgstr "原生模式：不转换地址，由源地址前缀决定线路"
+
+msgid "no probe result yet"
+msgstr "尚无探测结果"
+
+msgid "none"
+msgstr "无"
+
+msgid "none recorded for this build"
+msgstr "此构建暂无验证记录"
+
+msgid "observe"
+msgstr "观察模式"
+
+msgid "observe only: nothing is written to the kernel, health comes from netifd link state"
+msgstr "仅观察：不修改内核，健康状态来自 netifd 的链路状态"
+
+msgid "observe — read only, no kernel changes"
+msgstr "观察模式：只读，不修改内核"
+
+msgid "observe: netifd link state only, not probed"
+msgstr "观察模式：仅依据 netifd 链路状态，未执行探测"
+
+msgid "ok"
+msgstr "通过"
+
+msgid "peak"
+msgstr "峰值"
+
+msgid "per connection (default)"
+msgstr "按连接（默认）"
 
 msgid "per source + destination address"
 msgstr "按源地址 + 目的地址"
+
+msgid "per source address"
+msgstr "按源地址"
+
+msgid "probe failed during recovery"
+msgstr "恢复期间探测失败"
+
+msgid "probes failing"
+msgstr "探测失败"
+
+msgid "probes recovered"
+msgstr "探测已恢复"
+
+msgid "probes succeeded"
+msgstr "探测成功"
+
+msgid "quality restored"
+msgstr "线路质量已恢复"
+
+msgid "recovering"
+msgstr "恢复中"
+
+msgid "recovery complete"
+msgstr "恢复完成"
+
+msgid "reject (never silently use the main table)"
+msgstr "拒绝连接（不会自动回退到主路由表）"
+
+msgid "unknown"
+msgstr "未知"
+
+msgid "unmanaged — swanix does not touch IPv6"
+msgstr "不管理：swanix 不修改 IPv6"
+
+msgid "upload"
+msgstr "偏向上行"
+
+msgid "warn"
+msgstr "警告"
+
+msgid "Interface history"
+msgstr "接口历史"
+
+msgid "Last 6 hours, sampled every 30 seconds. History is kept in memory and cleared on restart."
+msgstr "最近 6 小时，每 30 秒采样。历史保存在内存中，重启后清空。"
+
+msgid "Probe failure rate measures TCP/HTTP probe failures, not packet loss. Observe mode records link state only. Missing or stale probe results appear as gaps."
+msgstr "探测失败率表示 TCP/HTTP 探测失败比例，并非链路丢包率。观察模式仅记录链路状态；缺失或过期的探测结果显示为空缺。"
+
+msgid "Interface history is unavailable. Update the swanix daemon and swanix-common together."
+msgstr "接口历史不可用，请同时更新 swanix 守护进程和 swanix-common。"
+
+msgid "No interface history yet. Waiting for samples."
+msgstr "暂无接口历史，正在等待采样。"
+
+msgid "Last sample"
+msgstr "最近采样"
+
+msgid "Healthy sample share is the fraction of recorded samples in healthy state, not an uptime guarantee. Interruptions count transitions into down, including short outages between samples."
+msgstr "正常采样占比表示已记录样本中处于正常状态的比例，不代表精确在线率。中断次数统计进入中断状态的次数，包含采样间隔内的短暂中断。"
+
+msgid "Healthy sample share"
+msgstr "正常采样占比"
+
+msgid "Interruptions"
+msgstr "中断次数"
+
+msgid "Mean sampled RTT"
+msgstr "采样平均延迟"
+
+msgid "Peak sampled RTT"
+msgstr "采样峰值延迟"
+
+msgid "Peak probe failure rate"
+msgstr "峰值探测失败率"
+
+msgid "State history"
+msgstr "状态历史"
+
+msgid "Probe RTT history (ms)"
+msgstr "探测延迟历史（ms）"
+
+msgid "Probe failure history (%)"
+msgstr "探测失败率历史（%）"
+
+msgid "No fresh probe results in this period."
+msgstr "此时间段内没有有效的新探测结果。"
+
+msgid "Could not refresh interface history: "
+msgstr "无法刷新接口历史："
+
+msgid "Red dots mark sample intervals with interruptions."
+msgstr "红点表示该采样间隔内发生过中断。"
+
+msgid "IP protocol"
+msgstr "IP 协议"
+
+msgid "IPv4 and IPv6"
+msgstr "IPv4 和 IPv6"
+
+msgid "IPv4 only"
+msgstr "仅 IPv4"
+
+msgid "IPv6 only"
+msgstr "仅 IPv6"
+
+msgid "Automatic"
+msgstr "自动"
+
+msgid "Disabled"
+msgstr "禁用"
+
+msgid "Prefilled from the local ULA prefix, or fd00::/64. Use the actual LAN prefix; only these prefixes are translated. This does not assign addresses to the LAN."
+msgstr "优先预填本机 ULA 前缀，未配置时使用 fd00::/64。请填写 LAN 实际使用的前缀，仅转换这些网段；此设置不会给 LAN 分配地址。"
+
+msgid "NAT66 egress policy"
+msgstr "NAT66 出口策略"
+
+msgid "Used when no traffic rule matches. A policy with one line fixes the egress; multiple lines enable balancing and failover."
+msgstr "未命中分流规则时使用此策略。单线路策略固定出口，多线路策略支持均衡与故障转移。"
+
+msgid "Follow the global default policy"
+msgstr "沿用全局默认策略"
+
+msgid "Traffic chart mode"
+msgstr "流量图表模式"
+
+msgid "Total traffic"
+msgstr "总流量"
+
+msgid "By interface"
+msgstr "按接口"
+
+msgid "address family disabled for this line"
+msgstr "此线路未启用该地址族"

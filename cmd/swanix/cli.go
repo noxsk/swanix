@@ -47,6 +47,7 @@ const usage = `用法: swanix <命令> [选项]
   run       [-c 文件]            运行守护进程（由 procd 启动）
   status    [--json]             查看运行状态
   history   [--json]             最近一小时的吞吐历史（内存环形缓冲）
+  interface_history [--json]     最近六小时的接口稳定性历史（每 30 秒采样）
   apply     [-c 文件] [--timeout 90s] [--verify 40s]
                                  切换到 swanix；验证通过（--verify 内有线路通过探测）后进入确认时限
   confirm                        确认并保留切换
@@ -81,6 +82,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		err = cmdStatus(rest, stdout)
 	case "history":
 		err = cmdHistory(rest, stdout)
+	case "interface_history":
+		err = cmdInterfaceHistory(rest, stdout)
 	case "apply":
 		err = cmdApply(rest, stdout)
 	case "confirm":
@@ -331,6 +334,19 @@ func cmdHistory(args []string, out io.Writer) error {
 		return err
 	}
 	raw, err := control.Call(socketPath(), control.MethodHistory)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(out, string(raw))
+	return err
+}
+
+func cmdInterfaceHistory(args []string, out io.Writer) error {
+	fs, _, _ := flagSet("interface_history")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	raw, err := control.Call(socketPath(), control.MethodInterfaceHistory)
 	if err != nil {
 		return err
 	}

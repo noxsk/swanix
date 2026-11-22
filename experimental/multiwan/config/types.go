@@ -18,6 +18,11 @@ const (
 	BiasBalanced = "balanced"
 	BiasUpload   = "upload"
 
+	ObjectiveCapacity   = "capacity"
+	ObjectiveLatency    = "latency"
+	ObjectiveThroughput = "throughput"
+	ObjectiveBalanced   = "balanced"
+
 	AffinityConnection        = "connection"
 	AffinitySourceDestination = "source_destination"
 	AffinitySource            = "source"
@@ -76,6 +81,7 @@ type WAN struct {
 	ID           int      `uci:"id"`
 	Enabled      bool     `uci:"enabled"`
 	Network      string   `uci:"network"`
+	IPFamily     string   `uci:"ip_family"`    // "dual" (default), "ipv4", or "ipv6"
 	IPv6Network  string   `uci:"ipv6_network"` // "auto", "", or a logical interface
 	DownloadMbps float64  `uci:"download_mbps"`
 	UploadMbps   float64  `uci:"upload_mbps"`
@@ -87,10 +93,15 @@ type WAN struct {
 }
 
 type Policy struct {
-	Name            string   `uci:"-"`
-	Members         []string `uci:"member"`
-	Affinity        string   `uci:"affinity"`
-	AffinityTimeout int      `uci:"affinity_timeout"` // seconds
+	Name      string   `uci:"-"`
+	Members   []string `uci:"member"`
+	Objective string   `uci:"objective"`
+	// FlowSizeKiB is the reference transfer size for balanced, not flow detection.
+	FlowSizeKiB int `uci:"flow_size_kib"`
+	// LatencyReservePercent is a soft capacity reserve for throughput, not shaping.
+	LatencyReservePercent int    `uci:"latency_reserve_percent"`
+	Affinity              string `uci:"affinity"`
+	AffinityTimeout       int    `uci:"affinity_timeout"` // seconds
 	// SaturationThreshold (percent of a line's configured capacity, 0 = off): a
 	// line at or above it gets no new connections while another member is below it.
 	SaturationThreshold int    `uci:"saturation_threshold"`
@@ -123,6 +134,7 @@ type Health struct {
 
 type IPv6 struct {
 	Mode         string   `uci:"mode"`
+	NAT66Policy  string   `uci:"nat66_policy"` // default policy for NAT66; empty follows global
 	NAT66Router  bool     `uci:"nat66_router_traffic"`
 	NAT66Sources []string `uci:"nat66_source"`
 }
@@ -178,6 +190,12 @@ func (w WAN) withDefaults() WAN {
 }
 
 func (p Policy) withDefaults() Policy {
+	if p.Objective == "" {
+		p.Objective = ObjectiveCapacity
+	}
+	if p.FlowSizeKiB == 0 {
+		p.FlowSizeKiB = 256
+	}
 	if p.Affinity == "" {
 		p.Affinity = AffinityConnection
 	}
@@ -243,4 +261,9 @@ func (c *Config) PolicyByName(name string) (Policy, bool) {
 		}
 	}
 	return Policy{}, false
+}
+
+// SupportsFamily reports whether the line participates in this address family.
+func (w WAN) SupportsFamily(family int) bool {
+	return family == 4 && w.IPFamily != "ipv6" || family == 6 && w.IPFamily != "ipv4" && w.IPv6Network != "none"
 }

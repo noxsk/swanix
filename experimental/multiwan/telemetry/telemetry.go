@@ -1,6 +1,6 @@
 // Package telemetry holds the bounded, in-memory status model exposed through
-// the local control interface. Nothing here is persisted unless
-// global.persist_history is explicitly enabled.
+// the local control interface. History stays in memory and is cleared on restart;
+// global.persist_history is currently reserved and has no effect.
 package telemetry
 
 import (
@@ -52,8 +52,11 @@ type FamilyStatus struct {
 	ProbeFailureRate float64 `json:"probe_failure_rate"`
 	// Share is the percent of new connections the scheduler assigns (per policy).
 	Share map[string]int `json:"new_connection_share"`
-	// Saturated lists the policies in which this line is at its saturation
-	// threshold and passes its new connections to unsaturated lines.
+	// SchedulingReason explains workload scoring or evidence fallback by policy.
+	SchedulingReason map[string]string `json:"scheduling_reason,omitempty"`
+	// Saturated lists policies with saturation pressure and a fresh unsaturated
+	// alternative. It includes hysteresis; it does not imply a 1% share or that
+	// this tick changed weights. The bounded discount still obeys smoothing.
 	Saturated []string `json:"saturated_in,omitempty"`
 	Limit     string   `json:"limit_reason,omitempty"`
 }
@@ -87,6 +90,35 @@ type HistoryPoint struct {
 	At time.Time          `json:"at"`
 	RX map[string]float64 `json:"rx_mbps"`
 	TX map[string]float64 `json:"tx_mbps"`
+}
+
+// InterfaceSample records health independently for each WAN/address family.
+// Nil probe metrics mean no fresh probe evidence (including observe mode).
+type InterfaceSample struct {
+	WAN              string   `json:"wan"`
+	Network          string   `json:"network"`
+	Device           string   `json:"device"`
+	Family           int      `json:"family"`
+	State            string   `json:"state"`
+	Reason           string   `json:"reason"`
+	Managing         bool     `json:"managing"`
+	RTTms            *float64 `json:"rtt_ms"`
+	ProbeFailureRate *float64 `json:"probe_failure_rate"`
+	// DownEvents counts transitions into Down since the preceding sample,
+	// including outages that recovered between two samples.
+	DownEvents uint64 `json:"down_events"`
+}
+
+type InterfaceHistoryPoint struct {
+	At         time.Time         `json:"at"`
+	Interfaces []InterfaceSample `json:"interfaces"`
+}
+
+// InterfaceHistory retains six hours of 30-second health samples in memory.
+type InterfaceHistory struct {
+	IntervalSeconds  int                     `json:"interval_seconds"`
+	RetentionSeconds int                     `json:"retention_seconds"`
+	Points           []InterfaceHistoryPoint `json:"points"`
 }
 
 // Status is the document returned by `swanix status`.

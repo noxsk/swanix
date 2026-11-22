@@ -20,6 +20,7 @@ list)
 {
 	"status": {},
 	"history": {},
+	"interface_history": {},
 	"features": {},
 	"version": {},
 	"doctor": {},
@@ -38,7 +39,15 @@ call)
 	method="$2"
 	input="$(cat)"
 	case "$method" in
-	status | history | features | version)
+	history)
+		# rpcd exec replies must be JSON objects, not a top-level array.
+		if out="$("$SWANIX" history --json 2>&1)"; then
+			printf '{"points":%s}\n' "$out"
+		else
+			emit_text 0 "$out"
+		fi
+		;;
+	status | interface_history | features | version)
 		if out="$("$SWANIX" "$method" --json 2>&1)"; then
 			echo "$out"
 		else

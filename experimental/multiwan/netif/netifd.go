@@ -170,7 +170,7 @@ func Collect(cfg *config.Config, src Source) (*Snapshot, error) {
 		}
 		if v4 == nil {
 			snap.Problems = append(snap.Problems, fmt.Sprintf("wan.%s.network: netifd 接口 %s 不存在", w.Name, w.Network))
-		} else {
+		} else if w.SupportsFamily(4) {
 			rt.Device4 = v4.Device
 			rt.Up4 = v4.Up && v4.Available && len(v4.Addrs4) > 0
 			rt.Gateway4 = v4.Gateway4
@@ -217,6 +217,9 @@ func Collect(cfg *config.Config, src Source) (*Snapshot, error) {
 // Auto only resolves when exactly one candidate exists: the WAN's own interface
 // when it carries an IPv6 default route, "<network>6" or netifd's "<network>_6".
 func resolveV6(cfg *config.Config, w config.WAN, v4 *Interface, get func(string) (*Interface, error)) (*Interface, string) {
+	if !w.SupportsFamily(6) {
+		return nil, ""
+	}
 	switch w.IPv6Network {
 	case "none":
 		return nil, ""

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -193,56 +194,88 @@ func (p *Prober) Round(ctx context.Context) RoundResult {
 // Quality tracks a rolling window of probe outcomes. LossRate is the TCP/HTTP
 // probe failure ratio and must not be presented as link packet loss.
 type Quality struct {
-	window int
-	oks    []bool
-	rtts   []time.Duration
+	rounds     []qualityRound
+	next       int
+	total, bad int
+	// Monotonic deque of round slots: the oldest minimum is at head.
+	mins       []int
+	head, size int
+	scratch    []time.Duration
 }
 
-func NewQuality(window int) *Quality { return &Quality{window: window} }
+type qualityRound struct {
+	total, bad int
+	rtt        time.Duration
+}
+
+// NewQuality keeps window completed rounds. Nonpositive windows use one round.
+func NewQuality(window int) *Quality {
+	if window < 1 {
+		window = 1
+	}
+	return &Quality{rounds: make([]qualityRound, window), mins: make([]int, window)}
+}
 
 func (q *Quality) Push(r RoundResult) {
+	n := len(q.rounds)
+	old := q.rounds[q.next]
+	q.total -= old.total
+	q.bad -= old.bad
+	if q.size > 0 && q.mins[q.head] == q.next {
+		q.head = (q.head + 1) % n
+		q.size--
+	}
+	current := qualityRound{total: len(r.Targets)}
+	q.scratch = q.scratch[:0]
 	for _, t := range r.Targets {
-		q.oks = append(q.oks, t.OK)
 		if t.OK {
-			q.rtts = append(q.rtts, t.RTT)
+			q.scratch = append(q.scratch, t.RTT)
+		} else {
+			current.bad++
 		}
 	}
-	if n := len(q.oks) - q.window*4; n > 0 {
-		q.oks = q.oks[n:]
+	// Derive the same upper median as Prober.Round, including callers that
+	// provide only Targets. Never compare a round median to a single target.
+	if len(q.scratch) > 0 {
+		slices.Sort(q.scratch)
+		current.rtt = q.scratch[len(q.scratch)/2]
 	}
-	if n := len(q.rtts) - q.window; n > 0 {
-		q.rtts = q.rtts[n:]
+	q.rounds[q.next] = current
+	q.total += current.total
+	q.bad += current.bad
+	if current.rtt > 0 {
+		for q.size > 0 {
+			back := (q.head + q.size - 1) % n
+			if q.rounds[q.mins[back]].rtt < current.rtt {
+				break
+			}
+			q.size--
+		}
+		q.mins[(q.head+q.size)%n] = q.next
+		q.size++
 	}
+	q.next = (q.next + 1) % n
 }
 
-// LossRate is the failure ratio of recent probes.
+// LossRate is the failure ratio of actual targets in the retained rounds.
 func (q *Quality) LossRate() float64 {
-	if len(q.oks) == 0 {
+	if q.total == 0 {
 		return 0
 	}
-	bad := 0
-	for _, ok := range q.oks {
-		if !ok {
-			bad++
-		}
-	}
-	return float64(bad) / float64(len(q.oks))
+	return float64(q.bad) / float64(q.total)
 }
 
-// BaseRTT is the smallest recent RTT, the line's idle baseline.
+// BaseRTT is the smallest successful round median in the window.
 func (q *Quality) BaseRTT() time.Duration {
-	var min time.Duration
-	for _, r := range q.rtts {
-		if min == 0 || r < min {
-			min = r
-		}
+	if q.size == 0 {
+		return 0
 	}
-	return min
+	return q.rounds[q.mins[q.head]].rtt
 }
 
 // Lossy reports a sustained probe-failure ratio. The ratio is not link packet loss.
 func (q *Quality) Lossy() bool {
-	return len(q.oks) >= 8 && q.LossRate() > 0.3
+	return q.total >= 8 && q.LossRate() > 0.3
 }
 
 // Slow reports a probe much slower than this line's own idle baseline.

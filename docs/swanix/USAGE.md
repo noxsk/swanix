@@ -122,6 +122,7 @@ swanix rollback         # 主动撤回本次切换
 swanix status            # 各线路的设备、状态及原因、RTT、探测失败率、各策略中的新连接份额、实时速率、满载状态
 swanix status --json     # JSON 格式输出（LuCI 与 ubus 接口使用此格式）
 swanix history           # 最近约 1 小时的吞吐记录（保存在内存中，采样间隔 5 秒）
+swanix interface_history --json  # 最近 6 小时的接口稳定性历史（内存，每 30 秒采样）
 swanix features          # 编译包含的能力（Lite / Full、代理协议列表）
 swanix version
 logread -e swanix        # 守护进程日志：状态变化、满载、代理连接中断等
@@ -129,6 +130,14 @@ ubus call swanix status  # rpcd 接口
 ```
 
 接口上下线、地址变化、PPPoE 重拨及前缀变化均由 hotplug 与 netlink 事件自动处理。如需立即重新读取接口状态，可执行 `swanix reconcile`。
+
+**流量图表。** 概览页的上传、下载图表支持两种模式：「总流量」将同一时刻各 WAN 的速率相加，显示一条合计曲线；「按接口」在同一张图上用不同颜色显示各 WAN 的独立曲线。模式切换同时应用于上传和下载图表，页面自动刷新会保留当前选择。单位为 Mbps，表示速率。
+
+**接口稳定性。** 在 LuCI「网络 → Multi-WAN (swanix) → 接口历史」选择 WAN 和 IPv4 / IPv6，查看最近 6 小时的状态时间线、探测延迟、探测失败率，以及正常采样占比、中断次数和延迟统计。历史由守护进程持续采集，不必保持页面打开；最多保留 720 个 30 秒样本，重启后清空，不写入闪存。使用 `ubus call swanix interface_history` 可读取相同数据。
+
+正常采样占比是所记录样本中 `healthy` 的比例，不是精确在线率。中断次数统计从已知状态进入 `down` 的次数，也会记录两次采样之间已恢复的短暂中断；刚启动时尚未知状态进入 `down` 不计作一次中断。状态图上的红点标记该采样间隔发生了中断。探测失败率沿用健康检测的近期 TCP/HTTP 探测失败比例，并非链路丢包率；失败、过期或未执行探测时不会填入虚假的零延迟。观察模式仅展示 netifd 链路状态，无法判断外网可达性。
+
+首次升级需同时更新 swanix（Lite 或 Full）、`swanix-common` 与 `luci-app-swanix`，重启守护进程后开始积累历史。
 
 **线路状态定义：**
 
@@ -229,6 +238,8 @@ config global 'global'
 
 * **运营商委派前缀**（DHCPv6-PD，含 PPPoE 会话上的 PD）：使用 `ipv6.mode native`，并为 LAN 接口设置 `ip6assign`。各线路的前缀经各自线路转发。
 * **单一前缀，或要求 IPv6 按连接均衡**：使用 `nat66`，LAN 使用 ULA 前缀，并在 `nat66_source` 中列出这些前缀。
+* **指定 NAT66 出口**：在 IPv6 页面选择 NAT66 出口策略。要固定线路，先创建只包含该线路的策略；留空时沿用全局默认策略，分流规则仍优先。
+* **线路地址族**：创建或编辑线路时可选择 IPv4 和 IPv6、仅 IPv4、仅 IPv6；仅 IPv6 时也需设置对应的 IPv6 接口（可自动识别）。
 * **不由 swanix 处理 IPv6**：使用 `unmanaged`。
 
 ### 8.10 PPPoE 与 DHCP 线路

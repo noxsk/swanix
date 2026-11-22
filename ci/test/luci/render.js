@@ -11,12 +11,17 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
+const assert = require('assert/strict');
 
-const [luciRes, outDir] = process.argv.slice(2);
-if (!luciRes || !outDir) { console.error('usage: render.js <luci-base resources> <out dir>'); process.exit(2); }
+const [luciResDir, outDir] = process.argv.slice(2);
+if (!luciResDir || !outDir) { console.error('usage: render.js <luci-base resources> <out dir>'); process.exit(2); }
+const luciRes = path.resolve(luciResDir);
 const repo = path.resolve(__dirname, '../../..');
 const appRes = path.join(repo, 'openwrt/luci-app-swanix/htdocs/luci-static/resources');
 fs.mkdirSync(outDir, { recursive: true });
+const translations = Object.fromEntries([...fs.readFileSync(path.join(repo,
+	'openwrt/luci-app-swanix/po/zh_Hans/swanix.po'), 'utf8').matchAll(/^msgid (".+")\nmsgstr (".+")$/gm)]
+	.map(m => [JSON.parse(m[1]), JSON.parse(m[2])]));
 
 /* ---- UCI fixture: the shipped default config, as ubus `uci get` returns it ---- */
 function parseUci(text) {
@@ -50,6 +55,18 @@ const status = {
 };
 const history = Array.from({ length: 120 }, (_, i) => ({ at: new Date(now - (120 - i) * 5000).toISOString(),
 	rx_mbps: { wan1: 80 + 40 * Math.sin(i / 9), wan2: 30 + 20 * Math.cos(i / 7) }, tx_mbps: { wan1: 6 + Math.sin(i / 5), wan2: 2 } }));
+const interfaceHistory = { interval_seconds: 30, retention_seconds: 21600,
+	points: Array.from({ length: 720 }, (_, i) => ({ at: new Date(now - (719 - i) * 30000).toISOString(), interfaces: [
+		{ wan: 'wan1', network: 'wan', device: 'eth1', family: 4, state: 'healthy', reason: 'probes succeeded', managing: true,
+			rtt_ms: 18 + 3 * Math.sin(i / 10), probe_failure_rate: 0, down_events: i === 300 ? 1 : 0 },
+		{ wan: 'wan1', network: 'wan', device: 'eth1', family: 6, state: 'healthy', reason: 'probes succeeded', managing: true,
+			rtt_ms: 45, probe_failure_rate: 0, down_events: 0 },
+		{ wan: 'wan2', network: 'wan2', device: 'eth2', family: 4, state: i >= 100 && i < 110 ? 'down' : i >= 110 && i < 115 ? 'recovering' : 'healthy',
+			reason: i >= 100 && i < 110 ? 'probes failed' : 'probes succeeded', managing: true,
+			rtt_ms: i >= 100 && i < 110 ? null : 60, probe_failure_rate: i >= 100 && i < 110 ? 1 : 0, down_events: i === 100 ? 1 : 0 },
+		{ wan: 'wan2', network: 'wan2', device: 'eth2', family: 6, state: 'healthy', reason: 'observe: netifd link state only, not probed',
+			managing: false, rtt_ms: null, probe_failure_rate: null, down_events: 0 }
+	] })) };
 const features = { version: '0.0.0-test', profile: status.profile, upstream_version: 'v1.14.4', upstream_commit: 'c005f35300ce76427dc285481ec5695f5b179cd2',
 	commit: 'deadbeef', go_version: 'go1.26.10', os: 'linux', arch: 'amd64', cgo: '1', build_tags: ['with_quic', 'with_musl'],
 	multiwan_features: ['ipv4-connection-balancing'], proxy_features: status.profile === 'full' ? ['inbound:socks', 'outbound:direct', 'outbound:vless'] : [], verified_scope: [] };
@@ -62,11 +79,12 @@ const calls = []; const unknown = new Set();
 function ubus(obj, method, args) {
 	calls.push(`${obj}.${method}`);
 	switch (`${obj}.${method}`) {
-	case 'session.access': return { 'access-group': { 'luci-app-swanix': ['read', 'write'] } };
+	case 'session.access': return { access: true, 'access-group': { 'luci-app-swanix': ['read', 'write'] } };
 	case 'uci.get': return args.config === 'swanix' ? { values: uciValues } : { values: {} };
 	case 'uci.state': case 'uci.changes': return {};
 	case 'swanix.status': return status;
-	case 'swanix.history': return history;
+	case 'swanix.history': return { points: history };
+	case 'swanix.interface_history': return interfaceHistory;
 	case 'swanix.features': case 'swanix.version': return features;
 	case 'swanix.doctor': return doctor;
 	case 'swanix.preview': return { ok: true, text: 'ip -4 rule add fwmark 0x01000000/0x0f000000 priority 10201 lookup 1001\n' };
@@ -87,6 +105,7 @@ function ubus(obj, method, args) {
 }
 
 const server = http.createServer((req, res) => {
+	if (req.url === '/favicon.ico') { res.writeHead(204); res.end(); return; }
 	if (req.method === 'POST' && req.url.startsWith('/ubus')) {
 		let body = ''; req.on('data', c => body += c); req.on('end', () => {
 			const reqs = JSON.parse(body); const list = Array.isArray(reqs) ? reqs : [reqs];
@@ -104,6 +123,7 @@ const server = http.createServer((req, res) => {
 		res.setHeader('Content-Type', 'text/html');
 		res.end(`<!doctype html><html><head><meta charset="utf-8"></head><body>
 <script src="/luci-static/resources/cbi.js"></script>
+${new URL(req.url, 'http://x').searchParams.get('lang') === 'zh_Hans' ? `<script>window.TR = {}; Object.entries(${JSON.stringify(translations)}).forEach(([k,v]) => TR[sfh(trimws(k))] = v);</script>` : ''}
 <script src="/luci-static/resources/luci.js"></script>
 <script>L = new LuCI({ media:'/luci-static/bootstrap', resource:'/luci-static/resources', scriptname:'/cgi-bin/luci', pathinfo:'/admin/network/swanix',
  requestpath:['admin','network','swanix'], dispatchpath:['admin','network','swanix'], pollinterval:5, ubuspath:'/ubus/', sessionid:'00000000000000000000000000000000',
@@ -125,9 +145,10 @@ const server = http.createServer((req, res) => {
 (async () => {
 	await new Promise(r => server.listen(0, '127.0.0.1', r));
 	const base = `http://127.0.0.1:${server.address().port}`;
-	const browser = await chromium.launch();
+	const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHROMIUM_CHANNEL || undefined });
 	const pages = [
 		['swanix.overview', /Multi-WAN overview/, ['wan1', 'recovering', '62%', 'probes recovered']],
+		['swanix.interface_history', /Interface history/, ['wan1 / IPv4', 'State history', '21.0 ms', '100.0%']],
 		['swanix.wans', /Lines \(WAN\)/, ['wan1', 'wan2', 'Capacities']],
 		['swanix.policies', /Policies and rules/, ['balanced']],
 		['swanix.health', /Health checks/, ['health_default', '1.1.1.1:443']],
@@ -146,14 +167,191 @@ const server = http.createServer((req, res) => {
 		page.on('response', r => { if (r.status() >= 400) errors.push(`HTTP ${r.status()}: ${r.url()}`); });
 		await page.goto(`${base}/?view=${encodeURIComponent(view)}`);
 		try { await page.waitForFunction(() => !document.querySelector('#view .spinning') && document.querySelector('#view').children.length > 0, null, { timeout: 15000 }); }
-		catch (e) { errors.push('view never finished loading'); }
+		catch (e) { throw new Error(`${view} never finished loading: ${errors.join('; ')}`, { cause: e }); }
 		await page.waitForTimeout(600);
 		const text = await page.locator('#view').innerText().catch(() => '');
 		await page.screenshot({ path: path.join(outDir, view + '.png'), fullPage: true });
 		const missing = needles.filter(n => !text.includes(n));
+
+		if (view === 'swanix.ipv6') {
+			await page.selectOption('select[id="widget.cbid.swanix.ipv6.mode"]', 'nat66');
+			const source = page.locator('[data-field="cbid.swanix.ipv6.nat66_source"]');
+			await source.waitFor({ state: 'visible' });
+			assert.ok((await source.locator('input').evaluateAll(inputs => inputs.map(i => i.value))).includes('fd00::/64'));
+			const policy = page.locator('select[id="widget.cbid.swanix.ipv6.nat66_policy"]');
+			await policy.selectOption('balanced');
+			assert.equal(await policy.inputValue(), 'balanced');
+			console.log('ok   NAT66 prefix default and egress policy selector');
+		}
+		if (view === 'swanix.wans') {
+			await page.locator('#view [data-section-id="wan1"] button:has-text("Edit")').click();
+			await page.waitForSelector('body.modal-overlay-active');
+			const family = page.locator('.modal select[id="widget.cbid.swanix.wan1.ip_family"]');
+			assert.equal(await family.inputValue(), 'dual');
+			await family.selectOption('ipv4');
+			await page.waitForFunction(() => document.querySelector('.modal [data-field="cbid.swanix.wan1.ipv6_network"]').classList.contains('hidden'));
+			await family.selectOption('ipv6');
+			await page.locator('.modal select[id="widget.cbid.swanix.wan1.ipv6_network"]').waitFor({ state: 'visible' });
+			await page.locator('.modal button:has-text("Dismiss")').click();
+			console.log('ok   line address family and IPv6 interface dependencies');
+		}
+		if (view === 'swanix.overview') {
+			const charts = await page.locator('#view svg').evaluateAll(charts => charts.map(svg =>
+				Array.from(svg.querySelectorAll('polyline'), line => line.points.numberOfItems)));
+			if (charts.length !== 2 || charts.some(lines => lines.length !== 2 || lines.some(n => n !== history.length)))
+				missing.push('download and upload curves with all history samples');
+			const edgeCases = await page.evaluate(async () => {
+				const sx = await L.require('swanix.common');
+				return ['rx_mbps', 'tx_mbps'].every(key => {
+					const empty = sx.historyChart([], key);
+					const sample = {}; sample[key] = { wan1: 0 };
+					const single = sx.historyChart([sample], key);
+					const zero = sx.historyChart([sample, sample], key);
+					sample[key].wan1 = 0.2;
+					const low = sx.historyChart([sample, sample], key);
+					return !empty.querySelector('svg') && empty.textContent.includes('Waiting for samples') &&
+						single.querySelector('circle') && single.textContent.includes('peak 0.0 Mbps') &&
+						zero.querySelector('polyline').points.numberOfItems === 2 && zero.textContent.includes('peak 0.0 Mbps') &&
+						low.textContent.includes('peak 0.2 Mbps');
+				});
+			});
+			if (!edgeCases) missing.push('empty, single-sample, zero and low-traffic chart states');
+			const totals = await page.evaluate(async () => {
+				const sx = await L.require('swanix.common');
+				return ['rx_mbps', 'tx_mbps'].every(key => {
+					const points = [{ [key]: { wan1: 5, wan2: 5 } }, { [key]: { wan1: 20, wan2: 5 } }, { [key]: { wan1: 1, wan2: 20 } }];
+					const before = JSON.stringify(points);
+					const chart = sx.historyChart(points, key, 'total');
+					const line = chart.querySelector('polyline');
+					return chart.querySelectorAll('polyline').length === 1 && line.points.numberOfItems === 3 &&
+						line.points[0].y > line.points[1].y && line.points[2].y > line.points[1].y &&
+						chart.textContent.includes('Total traffic') && chart.textContent.includes('peak 25.0 Mbps') &&
+						JSON.stringify(points) === before && !sx.historyChart([], key, 'total').querySelector('svg');
+				});
+			});
+			if (!totals) missing.push('totals summed at each timestamp without changing per-interface history');
+			await page.selectOption('#swanix-traffic-mode', 'total');
+			assert.equal(await page.locator('#swanix-traffic-charts polyline').count(), 2);
+			const oldCharts = await page.locator('#swanix-traffic-charts').elementHandle();
+			await page.waitForFunction(el => !el.isConnected, oldCharts, { timeout: 10000 });
+			assert.equal(await page.locator('#swanix-traffic-mode').inputValue(), 'total');
+			assert.equal(await page.locator('#swanix-traffic-charts polyline').count(), 2);
+			await page.screenshot({ path: path.join(outDir, 'swanix.overview.total.png'), fullPage: true });
+			await page.selectOption('#swanix-traffic-mode', 'interfaces');
+			assert.equal(await page.locator('#swanix-traffic-charts polyline').count(), 4);
+			console.log('ok   total and per-interface traffic modes, per-sample sums and polling selection');
+		}
 		if (!titleRe.test(text)) missing.push(String(titleRe));
 		if (errors.length || missing.length) { failed++; console.error(`FAIL ${view}\n  errors: ${JSON.stringify(errors)}\n  missing: ${JSON.stringify(missing)}\n  text: ${text.slice(0, 300).replace(/\n/g, ' | ')}`); }
 		else console.log(`ok   ${view}`);
+		if (view === 'swanix.interface_history') {
+			assert.equal(await page.locator('.swanix-interface-history svg').count(), 3);
+			await page.selectOption('#swanix-history-interface', 'wan2/4');
+			assert.match(await page.locator('.swanix-interface-history').innerText(), /97\.9%/);
+			assert.equal(await page.locator('.swanix-interface-history svg[aria-label="State history"] rect').count(), 720);
+			const gaps = await page.evaluate(async () => {
+				const s = await L.require('swanix.stability');
+				const rows = [
+					{ at: 30000, sample: { state: 'healthy', rtt_ms: 10, probe_failure_rate: 0, down_events: 1 } },
+					{ at: 60000, sample: { state: 'down', rtt_ms: null, probe_failure_rate: 1, down_events: 1 } },
+					{ at: 90000, sample: { state: 'healthy', rtt_ms: 20, probe_failure_rate: 0, down_events: 0 } }
+				];
+				const graph = s.chart(rows, 'rtt_ms', 0, 120000, 30000);
+				return { lines: graph.querySelectorAll('line[stroke="#1565c0"]').length, dots: graph.querySelectorAll('circle').length, stats: s.summary(rows), empty: s.summary([]) };
+			});
+			assert.equal(gaps.lines, 0); assert.equal(gaps.dots, 2);
+			assert.deepEqual(gaps.stats, { healthy: '66.7%', downs: 2, meanRTT: '15.0 ms', maxRTT: '20.0 ms', maxFailure: '100.0%' });
+			assert.equal(gaps.empty.healthy, '-');
+			await page.selectOption('#swanix-history-interface', 'wan2/6');
+			assert.equal(await page.locator('.swanix-interface-history svg').count(), 1);
+			assert.match(await page.locator('.swanix-interface-history').innerText(), /No fresh probe results/);
+			await page.selectOption('#swanix-history-interface', 'wan1/6');
+			assert.match(await page.locator('.swanix-interface-history').innerText(), /45\.0 ms/);
+			console.log('ok   interface history isolates families, counts short outages and leaves probe gaps');
+			let override = { interval_seconds: 30, retention_seconds: 21600, points: [] };
+			await page.route('**/ubus/**', async route => {
+				const requests = route.request().postDataJSON();
+				const list = Array.isArray(requests) ? requests : [requests];
+				if (!list.some(r => r.params && r.params[1] === 'swanix' && r.params[2] === 'interface_history')) return route.continue();
+				const response = await route.fetch();
+				const reply = await response.json();
+				const replies = Array.isArray(reply) ? reply : [reply];
+				list.forEach((r, i) => {
+					if (r.params && r.params[1] === 'swanix' && r.params[2] === 'interface_history') replies[i].result = [0, override];
+				});
+				await route.fulfill({ response, json: Array.isArray(reply) ? replies : replies[0] });
+			});
+			await page.reload();
+			await page.waitForFunction(() => document.querySelector('#view').innerText.includes('No interface history yet'));
+			assert.equal(await page.locator('.swanix-interface-history svg').count(), 0);
+			override = { ok: false, text: 'Interface history backend unavailable' };
+			await page.reload();
+			await page.waitForFunction(() => document.querySelector('#view').innerText.includes('Interface history backend unavailable'));
+			console.log('ok   interface history empty state and backend errors');
+		}
+		if (['swanix.policies', 'swanix.wans', 'swanix.health'].includes(view)) {
+			await page.evaluate(async () => {
+				const uci = await L.require('uci');
+				uci.add('swanix', 'policy', 'CPE');
+				uci.set('swanix', 'CPE', 'member', ['wan1']);
+				uci.set('swanix', 'CPE', 'affinity', 'connection');
+			});
+			// Exercise the actual Add buttons: collisions across types and within
+			// a type must leave the complete UCI cache unchanged and open no modal.
+			const creates = page.locator('#view .cbi-section-create');
+			for (let i = 0; i < await creates.count(); i++) {
+				for (const name of ['CPE', 'balanced', 'wan1', 'health_default', 'global']) {
+					const before = await page.evaluate(async () => JSON.stringify((await L.require('uci')).sections('swanix')));
+					const input = creates.nth(i).locator('input');
+					await input.fill(name);
+					await input.dispatchEvent('keyup');
+					await creates.nth(i).locator('button').click();
+					await page.waitForFunction(() => document.body.innerText.includes('already in use'));
+					assert.equal(await page.evaluate(async () => JSON.stringify((await L.require('uci')).sections('swanix'))), before);
+					assert.equal(await page.locator('body.modal-overlay-active').count(), 0);
+				}
+			}
+			console.log(`ok   ${view} duplicate names preserve configuration`);
+			if (view === 'swanix.policies') {
+				const input = creates.nth(1).locator('input');
+				await input.fill('CPE_rule');
+				await input.dispatchEvent('keyup');
+				await creates.nth(1).locator('button').click();
+				await page.waitForSelector('body.modal-overlay-active');
+				assert.equal(await page.evaluate(async () => (await L.require('uci')).get('swanix', 'CPE_rule', '.type')), 'rule');
+				assert.equal(await page.evaluate(async () => (await L.require('uci')).get('swanix', 'CPE', '.type')), 'policy');
+				console.log('ok   CPE_rule opens normally and preserves CPE policy');
+			}
+		}
+		await page.close();
+	}
+	for (const [view] of pages) {
+		if (view === 'swanix.proxy' && status.profile !== 'full') continue;
+		const page = await browser.newPage();
+		await page.goto(`${base}/?view=${view}&lang=zh_Hans`);
+		await page.waitForFunction(() => document.querySelector('#view h2'));
+		const text = await page.locator('#view').innerText();
+		assert.match(text, /[\u4e00-\u9fff]/);
+		if (view === 'swanix.policies') {
+			for (const label of ['策略与规则', '成员线路', '按连接（默认）', '拒绝连接', '规则']) assert.ok(text.includes(label), label);
+			const result = await page.evaluate(async () => {
+				const dom = await L.require('dom');
+				const map = dom.findClassInstance(document.querySelector('#view .cbi-map'));
+				const rule = map.children.find(s => s.sectiontype === 'rule');
+				return rule.children.find(o => o.option === 'proto').textvalue('missing');
+			});
+			assert.equal(result, '任意');
+		}
+		if (view === 'swanix.overview') assert.ok(text.includes('探测已恢复'));
+		if (view === 'swanix.interface_history') {
+			assert.ok(text.includes('接口历史')); assert.ok(text.includes('最近 6 小时'));
+			await page.setViewportSize({ width: 320, height: 800 });
+			await page.selectOption('#swanix-history-interface', 'wan2/4');
+			assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+			await page.screenshot({ path: path.join(outDir, 'swanix.interface_history.mobile.png'), fullPage: true });
+		}
+		await page.screenshot({ path: path.join(outDir, view + '.zh_Hans.png'), fullPage: true });
+		console.log(`ok   ${view} Chinese translation`);
 		await page.close();
 	}
 	if (process.env.PROBE_MODAL === '1') {

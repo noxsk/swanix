@@ -91,3 +91,31 @@ func TestMarkMask(t *testing.T) {
 		t.Fatal("non-contiguous must fail")
 	}
 }
+
+func TestIPFamilyAndNAT66Policy(t *testing.T) {
+	for _, tc := range []struct{ family, network, policy, want string }{
+		{"dual", "auto", "balanced", ""},
+		{"ipv4", "none", "", ""},
+		{"ipv6", "auto", "balanced", ""},
+		{"invalid", "auto", "", "ip_family"},
+		{"ipv6", "none", "", "ipv6_network"},
+		{"dual", "auto", "missing", "nat66_policy"},
+	} {
+		t.Run(tc.family+tc.network+tc.policy, func(t *testing.T) {
+			cfg, err := LoadFile(samplePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cfg.WANs[0].IPFamily, cfg.WANs[0].IPv6Network = tc.family, tc.network
+			cfg.IPv6.Mode, cfg.IPv6.NAT66Sources, cfg.IPv6.NAT66Policy = IPv6NAT66, []string{"fd00::/64"}, tc.policy
+			err = cfg.Validate(ProfileLite)
+			if tc.want == "" && err != nil || tc.want != "" && (err == nil || !strings.Contains(err.Error(), tc.want)) {
+				t.Fatalf("got %v, want %q", err, tc.want)
+			}
+		})
+	}
+	cfg, err := Parse("config wan 'test'\n option ip_family 'ipv6'\nconfig ipv6 'ipv6'\n option nat66_policy 'only1'\n")
+	if err != nil || cfg.WANs[0].IPFamily != "ipv6" || cfg.IPv6.NAT66Policy != "only1" {
+		t.Fatalf("UCI fields not decoded: %+v, %v", cfg, err)
+	}
+}

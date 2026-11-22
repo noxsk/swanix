@@ -19,9 +19,10 @@ Capacities (`download_mbps`, `upload_mbps`) are the lines' usable rates. The val
 line for `affinity_timeout` seconds and reuse it only while that line is in the pool.
 `unavailable_action` is `reject`: an empty pool never falls back to `main`.
 `saturation_threshold` (optional, 50–99, off by default) is a percentage of a line's configured capacity in its
-`traffic_bias` direction: while a member carries at least that much and another member is below it, the busy line keeps
-only the minimum share and new connections go to the others; it takes connections again once it is 10 points below
-the threshold (ramping back), and with every member that busy the normal weights apply. Existing connections never
+`traffic_bias` direction. With fresh load evidence for all candidates and an unsaturated alternative, apply a bounded
+score discount (factor 0.5–1) to the busy line, preserving EWMA, step limits, health and recovery weights. Unlike the
+previous hard-spill controller this does not force a 1% share. The flag clears 10 points below the threshold; the
+discount already fades to 1 at the threshold. With every member busy the normal weights apply. Existing connections never
 move, and a sticky client keeps its remembered line even when that line is saturated (stickiness wins). The rates come
 from the interface counters, so `download_mbps`/`upload_mbps` must be the real usable rates for this to mean anything.
 

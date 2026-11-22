@@ -106,3 +106,29 @@ func TestCollectPPPoE(t *testing.T) {
 		t.Fatalf("problems: %v", snap.Problems)
 	}
 }
+
+func TestCollectIPFamilies(t *testing.T) {
+	for _, family := range []string{"", "dual", "ipv4", "ipv6"} {
+		t.Run(family, func(t *testing.T) {
+			cfg, err := config.LoadFile("../../../openwrt/swanix-common/files/etc/config/swanix")
+			if err != nil {
+				t.Fatal(err)
+			}
+			cfg.WANs[0].IPFamily = family
+			snap, err := Collect(cfg, fake{"wan": wanJSON, "wan6": wan6JSON, "wan2": pppJSON, "wan2_6": ppp6JSON, "lan": lanJSON})
+			if err != nil {
+				t.Fatal(err)
+			}
+			rt := snap.WANs[0]
+			if rt.Up4 != (family != "ipv6") || rt.Up6 != (family != "ipv4") {
+				t.Fatalf("unexpected runtime: %+v", rt)
+			}
+			if family == "ipv6" && (rt.Device4 != "" || rt.Src4.IsValid() || rt.Gateway4.IsValid()) {
+				t.Fatalf("IPv4 still configured: %+v", rt)
+			}
+			if family == "ipv4" && (rt.Device6 != "" || rt.Gateway6.IsValid() || len(rt.Prefixes6) != 0) {
+				t.Fatalf("IPv6 still configured: %+v", rt)
+			}
+		})
+	}
+}

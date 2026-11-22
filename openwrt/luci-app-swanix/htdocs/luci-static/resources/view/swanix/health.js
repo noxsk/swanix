@@ -13,6 +13,7 @@ return view.extend({
 			_('Probe targets must be IP addresses so name resolution can never be answered through another line. The failure rate shown on the overview is the probe failure ratio, not link packet loss.'));
 		var s = m.section(form.GridSection, 'health', _('Profiles'));
 		s.addremove = true; s.anonymous = false; s.nodescriptions = true;
+		sx.protectSectionNames(s);
 		var o = s.option(form.DynamicList, 'target', _('Targets'), _('ip:port, [ipv6]:port or http(s)://ip/path'));
 		o.rmempty = false;
 		o = s.option(form.Value, 'interval', _('Interval (s)')); o.datatype = 'min(1)'; o.default = '5';

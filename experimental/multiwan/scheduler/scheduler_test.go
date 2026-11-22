@@ -174,23 +174,24 @@ func loaded(id int, rx float64) Input {
 	return w
 }
 
-func TestSaturatedLineSpillsAtOnce(t *testing.T) {
+func TestSaturatedLineSpillsGradually(t *testing.T) {
 	s := New(Params{Saturation: 0.9})
 	if r := s.Step([]Input{loaded(1, 10), loaded(2, 10)}); r.Shares[1] != 50 {
 		t.Fatalf("start: %v", r.Shares)
 	}
-	// wan1 reaches 95 % of its 100 Mbit/s: new connections leave it in one step, not 10 points per update
+	// Saturation must not bypass EWMA or the ten-point step.
 	r := s.Step([]Input{loaded(1, 95), loaded(2, 10)})
-	if r.Shares[1] != 1 || r.Shares[2] != 99 || !r.Saturated[1] || !r.Changed {
+	if r.Shares[1] < 40 || r.Shares[1] >= 50 || !r.Saturated[1] || !r.Changed {
 		t.Fatalf("spill: %v saturated=%v", r.Shares, r.Saturated)
 	}
 	// still above threshold-10 %: stays spilled (hysteresis)
-	if r := s.Step([]Input{loaded(1, 85), loaded(2, 10)}); r.Shares[1] != 1 {
+	if r := s.Step([]Input{loaded(1, 85), loaded(2, 10)}); !r.Saturated[1] {
 		t.Fatalf("released too early: %v", r.Shares)
 	}
-	// below 80 %: released, and it ramps back instead of jumping
+	// Below 80% releases the flag. Smoothing may still move toward prior intent.
+	prev := roundShares(s.applied, 1)[1]
 	r = s.Step([]Input{loaded(1, 75), loaded(2, 10)})
-	if r.Saturated[1] || r.Shares[1] <= 1 || r.Shares[1] > 11 {
+	if r.Saturated[1] || r.Shares[1] < 1 || absShareDelta(r.Shares[1], prev) > 11 {
 		t.Fatalf("release should ramp: %v", r.Shares)
 	}
 }

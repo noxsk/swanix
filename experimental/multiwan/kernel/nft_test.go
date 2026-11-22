@@ -202,3 +202,31 @@ func TestStickyLoadsInKernel(t *testing.T) {
 		sh(t, "nft", "-f", wf)
 	}
 }
+
+func TestNAT66EgressPolicy(t *testing.T) {
+	in := fixture(t)
+	in.Cfg.IPv6.Mode = config.IPv6NAT66
+	in.Cfg.IPv6.NAT66Sources = []string{"fd00::/64"}
+	in.Cfg.IPv6.NAT66Policy = "only1"
+	in.Cfg.Policies = append(in.Cfg.Policies, config.Policy{Name: "only1", Members: []string{"wan1"}, Affinity: config.AffinityConnection})
+	in.Shares["only1"] = map[int]map[int]int{4: {1: 100}, 6: {1: 100}}
+	// Explicit traffic rules still take precedence over the family default.
+	in.Cfg.Rules = []config.Rule{{Name: "special", Enabled: true, Priority: 10, Policy: "balanced", Proto: "tcp", DestPort: []string{"443"}}}
+	for _, render := range []func() (*Ruleset, error){in.Render, in.RenderRuntime} {
+		rs, err := render()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range []string{"meta nfproto ipv4 numgen random mod 100 vmap @pol_balanced_4", "meta nfproto ipv6 numgen random mod 100 vmap @pol_only1_6"} {
+			if !strings.Contains(rs.Script, want) {
+				t.Errorf("missing %q", want)
+			}
+		}
+		if strings.Contains(rs.Script, "meta nfproto ipv6 numgen random mod 100 vmap @pol_balanced_6") {
+			t.Fatal("IPv6 still follows global default")
+		}
+		if !strings.Contains(rs.Script, "th dport { 443 }") {
+			t.Fatal("traffic rule missing")
+		}
+	}
+}

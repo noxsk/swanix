@@ -276,3 +276,35 @@ func TestStatus(t *testing.T) {
 		t.Fatalf("%+v", st)
 	}
 }
+
+type ipv6OnlyNetif struct{}
+
+func (ipv6OnlyNetif) Status(name string) (netif.Interface, bool, error) {
+	return netif.Interface{Name: name, Up: true, Available: true, Device: "eth6", Gateway6: netip.MustParseAddr("fe80::1")}, true, nil
+}
+
+func TestIPv6OnlyDeviceAndCounters(t *testing.T) {
+	cfg, err := config.LoadFile("../../../openwrt/swanix-common/files/etc/config/swanix")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.WANs = cfg.WANs[:1]
+	cfg.WANs[0].IPFamily, cfg.WANs[0].IPv6Network = "ipv6", "wan"
+	cfg.IPv6.Mode = config.IPv6NAT66
+	var sampled string
+	e, err := New(Options{Config: cfg, Profile: config.ProfileLite, Netif: ipv6OnlyNetif{}, Kernel: &fakeKernel{}, Counters: func(dev string) (uint64, uint64, bool) { sampled = dev; return 0, 0, true }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.Reconcile(); err != nil {
+		t.Fatal(err)
+	}
+	e.Sample()
+	st := e.Status().WANs[0]
+	if st.Device != "eth6" || sampled != "eth6" {
+		t.Fatalf("IPv6 counters use wrong device: %s / %s", st.Device, sampled)
+	}
+	if st.Families[0].Reason != "address family disabled for this line" {
+		t.Fatalf("disabled IPv4 presented as a failure: %+v", st.Families[0])
+	}
+}

@@ -1,35 +1,605 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8\n"
 
-msgid "Multi-WAN (swanix)"
+msgid "\"New-connection share\" is how many new connections the scheduler hands to a line. It is not a bandwidth share: one connection always stays on one line."
 msgstr ""
 
-msgid "Overview"
+msgid "80 or 8000-8100; needs TCP or UDP"
 msgstr ""
 
-msgid "Lines"
+msgid "A policy is a pool of lines. Every new connection picks a line once and keeps it. Unmatched traffic uses the default policy."
 msgstr ""
 
-msgid "Policies"
+msgid "Also translate the router's own connections"
 msgstr ""
 
-msgid "Health checks"
+msgid "Scheduling objective"
 msgstr ""
 
-msgid "IPv6"
+msgid "Capacity (compatible default)"
 msgstr ""
 
-msgid "Proxy"
+msgid "Low latency"
 msgstr ""
 
-msgid "System / Diagnostics"
+msgid "High throughput"
 msgstr ""
 
-msgid "New-connection share"
+msgid "Balanced latency and throughput"
+msgstr ""
+
+msgid "Reference transfer size (KiB)"
+msgstr ""
+
+msgid "Used only by balanced to estimate transfer completion time. This is a configured reference size, not automatic flow-size detection."
+msgstr ""
+
+msgid "Low-latency capacity soft reserve (%)"
+msgstr ""
+
+msgid "Used only by throughput. Softly reserves low-latency capacity when selecting new connections; this is not SQM or rate limiting. 0 disables the reserve."
+msgstr ""
+
+msgid "Build"
+msgstr ""
+
+msgid "Build tags"
+msgstr ""
+
+msgid "Capacities must be the real line rates you can use. They steer the scheduler; the interface link speed is deliberately not used. The example values shipped with the package are not your line rates."
+msgstr ""
+
+msgid "Capacity"
+msgstr ""
+
+msgid "Check"
+msgstr ""
+
+msgid "Close connections on a failed line"
+msgstr ""
+
+msgid "Compiled-in proxy features"
 msgstr ""
 
 msgid "Confirm"
 msgstr ""
 
+msgid "Confirm the new multi-WAN setup"
+msgstr ""
+
+msgid "Default policy"
+msgstr ""
+
+msgid "Destination"
+msgstr ""
+
+msgid "Destination ports"
+msgstr ""
+
+msgid "Detail"
+msgstr ""
+
+msgid "Down / Up now"
+msgstr ""
+
+msgid "Download (Mbps)"
+msgstr ""
+
+msgid "Download (last hour, 5 s resolution)"
+msgstr ""
+
+msgid "No traffic history yet. Waiting for samples."
+msgstr ""
+
+msgid "Enable"
+msgstr ""
+
+msgid "Enable the proxy runtime"
+msgstr ""
+
+msgid "Enabled"
+msgstr ""
+
+msgid "Failed rounds before down"
+msgstr ""
+
+msgid "Family"
+msgstr ""
+
+msgid "Fork commit"
+msgstr ""
+
+msgid "Global"
+msgstr ""
+
+msgid "Good rounds before recovery"
+msgstr ""
+
+msgid "Health checks"
+msgstr ""
+
+msgid "Health profile"
+msgstr ""
+
+msgid "How to fix"
+msgstr ""
+
+msgid "ID"
+msgstr ""
+
+msgid "IPv4 and IPv6 are scheduled independently: a line can be healthy for one family and down for the other."
+msgstr ""
+
+msgid "IPv4 link down or no address"
+msgstr ""
+
+msgid "IPv6"
+msgstr ""
+
+msgid "IPv6 interface"
+msgstr ""
+
+msgid "IPv6 mode"
+msgstr ""
+
+msgid "IPv6 unavailable (no interface, address or default route)"
+msgstr ""
+
+msgid "Independent targets, not consecutive rounds."
+msgstr ""
+
+msgid "Installed disabled. Enabling does not take over the network until you apply."
+msgstr ""
+
+msgid "Interface"
+msgstr ""
+
+msgid "Interval (s)"
+msgstr ""
+
+msgid "Line"
+msgstr ""
+
+msgid "Lines"
+msgstr ""
+
+msgid "Lines (WAN)"
+msgstr ""
+
+msgid "Lower numbers match first."
+msgstr ""
+
+msgid "Manage the router's own outgoing traffic"
+msgstr ""
+
+msgid "Managed LAN networks"
+msgstr ""
+
+msgid "Member lines"
+msgstr ""
+
+msgid "Mode"
+msgstr ""
+
+msgid "Multi-WAN (swanix)"
+msgstr ""
+
+msgid "Multi-WAN overview"
+msgstr ""
+
+msgid "NAT66 source prefixes"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "New-connection share"
+msgstr ""
+
+msgid "None since start."
+msgstr ""
+
+msgid "Off"
+msgstr ""
+
+msgid "OpenWrt series"
+msgstr ""
+
+msgid "Optional. With fresh load data and an unsaturated alternative, gradually discount a saturated line's score by at most half. Health, recovery and step limits still apply; no forced 1% share. The saturation flag clears 10 points below the threshold. 0 or empty: off."
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Per connection spreads best. Sticky modes keep a client on its line across connections while that line is usable, which reduces balancing for that client."
+msgstr ""
+
+msgid "Platform"
+msgstr ""
+
+msgid "Policies"
+msgstr ""
+
+msgid "Policies and rules"
+msgstr ""
+
+msgid "Policy"
+msgstr ""
+
+msgid "Preference"
+msgstr ""
+
+msgid "Press \"Preview\" to see the rules that would be installed."
+msgstr ""
+
+msgid "Preview"
+msgstr ""
+
+msgid "Priority"
+msgstr ""
+
+msgid "Probe RTT (base)"
+msgstr ""
+
+msgid "Probe failure rate"
+msgstr ""
+
+msgid "Probe targets must be IP addresses so name resolution can never be answered through another line. The failure rate shown on the overview is the probe failure ratio, not link packet loss."
+msgstr ""
+
+msgid "Profile"
+msgstr ""
+
+msgid "Profiles"
+msgstr ""
+
+msgid "Protocol"
+msgstr ""
+
+msgid "Proxy"
+msgstr ""
+
+msgid "Proxy (Full build)"
+msgstr ""
+
+msgid "Proxy configuration file"
+msgstr ""
+
+msgid "Reason"
+msgstr ""
+
+msgid "Recent state changes"
+msgstr ""
+
+msgid "Recovery ramp (s)"
+msgstr ""
+
+msgid "Rejected new connections (no usable line): "
+msgstr ""
+
+msgid "Relative weight, default 100. Not a capacity."
+msgstr ""
+
+msgid "Required for nat66. Only these LAN prefixes are translated."
+msgstr ""
+
+msgid "Resource plan"
+msgstr ""
+
+msgid "Result"
+msgstr ""
+
+msgid "Role"
+msgstr ""
+
 msgid "Roll back now"
+msgstr ""
+
+msgid "Router-originated traffic only"
+msgstr ""
+
+msgid "Rules"
+msgstr ""
+
+msgid "Saturation threshold (%)"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "Stable number 1–14. Never changes when lines are reordered."
+msgstr ""
+
+msgid "State"
+msgstr ""
+
+msgid "Stickiness"
+msgstr ""
+
+msgid "Stickiness timeout (s)"
+msgstr ""
+
+msgid "Switched to swanix. Confirm within the time limit or the previous setup is restored automatically."
+msgstr ""
+
+msgid "System / Diagnostics"
+msgstr ""
+
+msgid "System check (doctor)"
+msgstr ""
+
+msgid "TUN"
+msgstr ""
+
+msgid "Targets"
+msgstr ""
+
+msgid "Targets that must answer per round"
+msgstr ""
+
+msgid "The name \"%s\" is already in use. Names must be unique across lines, policies, rules and health profiles. Choose another name, for example \"%s\"."
+msgstr ""
+
+msgid "The proxy configuration itself lives in /etc/swanix/proxy.json and is never rewritten by this page. Set wan_policy on an outbound there to let it pick a line per connection."
+msgstr ""
+
+msgid "The swanix daemon is not running."
+msgstr ""
+
+msgid "Time over which a recovered line is brought back to full share."
+msgstr ""
+
+msgid "Timeout (s)"
+msgstr ""
+
+msgid "Traffic bias"
+msgstr ""
+
+msgid "Transparent takeover"
+msgstr ""
+
+msgid "Upload"
+msgstr ""
+
+msgid "Upload (Mbps)"
+msgstr ""
+
+msgid "Upstream"
+msgstr ""
+
+msgid "Verified scope"
+msgstr ""
+
+msgid "Version"
+msgstr ""
+
+msgid "When a line goes down, close the proxy connections that were dialled through it, so long-lived sessions (mux, HTTP/2, QUIC) reconnect over a healthy line at once instead of waiting for their own timeouts."
+msgstr ""
+
+msgid "When no line is usable"
+msgstr ""
+
+msgid "With \"TUN\" the tun inbound in proxy.json (auto_route, without auto_redirect) takes the LAN traffic; swanix checks its rule priorities, routing table and marks against its own, and outbounds with wan_policy pick the line per connection."
+msgstr ""
+
+msgid "active — shares traffic"
+msgstr ""
+
+msgid "any"
+msgstr ""
+
+msgid "auto, none, or a logical interface"
+msgstr ""
+
+msgid "backup — only when no active line is usable"
+msgstr ""
+
+msgid "balanced"
+msgstr ""
+
+msgid "degraded"
+msgstr ""
+
+msgid "down"
+msgstr ""
+
+msgid "download"
+msgstr ""
+
+msgid "fail"
+msgstr ""
+
+msgid "healthy"
+msgstr ""
+
+msgid "ip:port, [ipv6]:port or http(s)://ip/path"
+msgstr ""
+
+msgid "latency or loss above threshold"
+msgstr ""
+
+msgid "link up, waiting for probes"
+msgstr ""
+
+msgid "manage"
+msgstr ""
+
+msgid "manage — take over routing (confirm window applies)"
+msgstr ""
+
+msgid "managing the kernel data path"
+msgstr ""
+
+msgid "nat66 — per-connection balancing with translation (authorised prefixes only)"
+msgstr ""
+
+msgid "native — no translation; the source prefix decides the line"
+msgstr ""
+
+msgid "no probe result yet"
+msgstr ""
+
+msgid "none"
+msgstr ""
+
+msgid "none recorded for this build"
+msgstr ""
+
+msgid "observe"
+msgstr ""
+
+msgid "observe only: nothing is written to the kernel, health comes from netifd link state"
+msgstr ""
+
+msgid "observe — read only, no kernel changes"
+msgstr ""
+
+msgid "observe: netifd link state only, not probed"
+msgstr ""
+
+msgid "ok"
+msgstr ""
+
+msgid "peak"
+msgstr ""
+
+msgid "per connection (default)"
+msgstr ""
+
+msgid "per source + destination address"
+msgstr ""
+
+msgid "per source address"
+msgstr ""
+
+msgid "probe failed during recovery"
+msgstr ""
+
+msgid "probes failing"
+msgstr ""
+
+msgid "probes recovered"
+msgstr ""
+
+msgid "probes succeeded"
+msgstr ""
+
+msgid "quality restored"
+msgstr ""
+
+msgid "recovering"
+msgstr ""
+
+msgid "recovery complete"
+msgstr ""
+
+msgid "reject (never silently use the main table)"
+msgstr ""
+
+msgid "unknown"
+msgstr ""
+
+msgid "unmanaged — swanix does not touch IPv6"
+msgstr ""
+
+msgid "upload"
+msgstr ""
+
+msgid "warn"
+msgstr ""
+
+msgid "Interface history"
+msgstr ""
+
+msgid "Last 6 hours, sampled every 30 seconds. History is kept in memory and cleared on restart."
+msgstr ""
+
+msgid "Probe failure rate measures TCP/HTTP probe failures, not packet loss. Observe mode records link state only. Missing or stale probe results appear as gaps."
+msgstr ""
+
+msgid "Interface history is unavailable. Update the swanix daemon and swanix-common together."
+msgstr ""
+
+msgid "No interface history yet. Waiting for samples."
+msgstr ""
+
+msgid "Last sample"
+msgstr ""
+
+msgid "Healthy sample share is the fraction of recorded samples in healthy state, not an uptime guarantee. Interruptions count transitions into down, including short outages between samples."
+msgstr ""
+
+msgid "Healthy sample share"
+msgstr ""
+
+msgid "Interruptions"
+msgstr ""
+
+msgid "Mean sampled RTT"
+msgstr ""
+
+msgid "Peak sampled RTT"
+msgstr ""
+
+msgid "Peak probe failure rate"
+msgstr ""
+
+msgid "State history"
+msgstr ""
+
+msgid "Probe RTT history (ms)"
+msgstr ""
+
+msgid "Probe failure history (%)"
+msgstr ""
+
+msgid "No fresh probe results in this period."
+msgstr ""
+
+msgid "Could not refresh interface history: "
+msgstr ""
+
+msgid "Red dots mark sample intervals with interruptions."
+msgstr ""
+
+msgid "IP protocol"
+msgstr ""
+
+msgid "IPv4 and IPv6"
+msgstr ""
+
+msgid "IPv4 only"
+msgstr ""
+
+msgid "IPv6 only"
+msgstr ""
+
+msgid "Automatic"
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Prefilled from the local ULA prefix, or fd00::/64. Use the actual LAN prefix; only these prefixes are translated. This does not assign addresses to the LAN."
+msgstr ""
+
+msgid "NAT66 egress policy"
+msgstr ""
+
+msgid "Used when no traffic rule matches. A policy with one line fixes the egress; multiple lines enable balancing and failover."
+msgstr ""
+
+msgid "Follow the global default policy"
+msgstr ""
+
+msgid "Traffic chart mode"
+msgstr ""
+
+msgid "Total traffic"
+msgstr ""
+
+msgid "By interface"
+msgstr ""
+
+msgid "address family disabled for this line"
 msgstr ""

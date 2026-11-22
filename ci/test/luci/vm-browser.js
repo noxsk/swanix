@@ -17,7 +17,8 @@ fs.mkdirSync(outDir, { recursive: true });
 /* [page, texts that must be visible, DOM selectors that must exist]; section names of a grid are
  * rendered by the theme, so they are checked through data-section-id rather than innerText */
 const pages = [
-	['overview', ['Multi-WAN overview', 'wan1', 'wan2', 'healthy'], []],
+	['overview', ['Multi-WAN overview', 'wan1', 'wan2', 'healthy'], ['svg polyline']],
+	['interface_history', ['Interface history', 'State history', 'Healthy sample share'], ['#swanix-history-interface', 'svg[aria-label="State history"]']],
 	['wans', ['Lines (WAN)', 'Download (Mbps)', '500', '300'], ['[data-section-id="wan1"]', '[data-section-id="wan2"]']],
 	['policies', ['Policies and rules', 'Member lines', 'Stickiness'], ['[data-section-id="balanced"]']],
 	['health', ['Health checks', 'Targets', 'Interval (s)'], ['[data-section-id="health_default"]']],

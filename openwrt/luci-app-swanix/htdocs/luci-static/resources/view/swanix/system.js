@@ -12,7 +12,7 @@ return view.extend({
 		var checks = (d.checks || []).map(function(c) {
 			var colour = { ok: '#2e7d32', warn: '#f9a825', fail: '#c62828' }[c.level] || '#757575';
 			return E('tr', { 'class': 'tr' }, [
-				E('td', { 'class': 'td' }, E('span', { 'style': 'color:' + colour + ';font-weight:bold' }, c.level)),
+				E('td', { 'class': 'td' }, E('span', { 'style': 'color:' + colour + ';font-weight:bold' }, _(c.level))),
 				E('td', { 'class': 'td' }, c.name), E('td', { 'class': 'td' }, c.detail),
 				E('td', { 'class': 'td' }, c.fix || '')
 			]);

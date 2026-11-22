@@ -3,9 +3,9 @@
 		"description": "Grant access to swanix multi-WAN status and configuration",
 		"read": {
 			"ubus": {
-				"swanix": [ "status", "history", "features", "version", "doctor", "preview", "check" ]
+				"swanix": [ "status", "history", "interface_history", "features", "version", "doctor", "preview", "check" ]
 			},
-			"uci": [ "swanix" ]
+			"uci": [ "swanix", "network" ]
 		},
 		"write": {
 			"ubus": {

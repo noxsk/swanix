@@ -14,8 +14,9 @@ import (
 )
 
 // TestLiteSaturationSpillover: both lines are configured as 4 Mbit/s and wan1
-// gets 20 Mbit/s of traffic; with saturation_threshold 80 its new connections go to
-// wan2 at once, and come back once the load is gone.
+// gets 20 Mbit/s of traffic; saturation_threshold 80 applies a soft discount.
+// Wait for gradual redistribution, check actual connections against the observed
+// weight, then verify recovery. A saturation flag alone is not a completed move.
 func TestLiteSaturationSpillover(t *testing.T) {
 	nstest.Require(t)
 	tp := nstest.New(t)
@@ -81,7 +82,7 @@ func TestLiteSaturationSpillover(t *testing.T) {
 	// about 20 Mbit/s arrives on wan1 (UDP to the router, dropped there): 5x its configured capacity
 	load := exec.Command("ip", "netns", "exec", "isp1", "python3", "-I", "-c", `
 import socket,time
-s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); b=b"x"*1250; end=time.time()+25
+s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); b=b"x"*1250; end=time.time()+60
 while time.time()<end:
     t=time.time()
     for i in range(20): s.sendto(b,("192.0.2.2",9))
@@ -91,9 +92,18 @@ while time.time()<end:
 	}
 	defer func() { _ = load.Process.Kill(); _ = load.Wait() }()
 	waitFor(t, "wan1 reported saturated", 15*time.Second, saturated)
-	r := tp.Count("lan", 100)
-	if r["wan1"]+r["wan2"] != 100 || r["wan1"] > 5 {
-		t.Fatalf("new connections should leave the saturated line: %v", r)
+	waitFor(t, "wan1 gradually receives fewer connections", 35*time.Second, func() bool {
+		st, ok := status(t, bin)
+		_, share := state(st, "wan1")
+		return ok && saturated() && share >= 1 && share <= 25
+	})
+	st, _ := status(t, bin)
+	_, share := state(st, "wan1")
+	r := tp.Count("lan", 300)
+	// Allow sampling noise and continuing EWMA convergence during collection.
+	expected := 3 * share
+	if r["wan1"]+r["wan2"] != 300 || r["wan1"] < expected-45 || r["wan1"] > expected+45 {
+		t.Fatalf("new connections should follow gradual shares (wan1=%d%%): %v", share, r)
 	}
 	t.Logf("while wan1 is saturated: %v", r)
 

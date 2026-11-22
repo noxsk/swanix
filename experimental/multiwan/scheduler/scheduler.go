@@ -15,22 +15,42 @@ import (
 
 // Params are the scheduler constraints. Zero values select the defaults.
 type Params struct {
-	MinShare float64 // percent for every usable candidate, default 1
-	MaxStep  float64 // max percentage points per update, default 10
-	Deadband float64 // changes below this many points are ignored, default 3
-	Alpha    float64 // EWMA factor for target shares, default 0.2
+	// Objective is capacity (legacy), latency, throughput, or balanced.
+	Objective string
+	// FlowSizeKiB is a reference transfer size, never an inferred flow size.
+	FlowSizeKiB int
+	// LatencyReservePercent subtracts soft headroom on the lowest-baseline
+	// lines for throughput policies. It does not shape existing connections.
+	LatencyReservePercent int
+	MinShare              float64 // percent for every usable candidate, default 1
+	MaxStep               float64 // max percentage points per update, default 10
+	Deadband              float64 // changes below this many points are ignored, default 3
+	Alpha                 float64 // EWMA factor for target shares, default 0.2
 	// Saturation (0 = off, else 0.5–0.99) is the utilisation of the configured
-	// capacity at which a line counts as saturated. While at least one other
-	// candidate is below it, saturated lines only keep MinShare and new
-	// connections go to the unsaturated ones at once. A line is released when it
-	// falls saturationRelease below the threshold.
+	// capacity at which a line counts as saturated. With fresh alternative
+	// capacity, apply a bounded score discount, preserving objective factors,
+	// EWMA and step limits. Saturation is not a failure or a hard 1% floor.
+	// A line is released saturationRelease below the threshold.
 	Saturation float64
 }
 
 // saturationRelease is the hysteresis below the threshold.
 const saturationRelease = 0.10
 
+// ParamsForPolicy keeps live scheduling and dry-run preview consistent.
+func ParamsForPolicy(p config.Policy) Params {
+	return Params{Objective: p.Objective, FlowSizeKiB: p.FlowSizeKiB,
+		LatencyReservePercent: p.LatencyReservePercent,
+		Saturation:            float64(p.SaturationThreshold) / 100}
+}
+
 func (p Params) withDefaults() Params {
+	if p.Objective == "" {
+		p.Objective = config.ObjectiveCapacity
+	}
+	if p.FlowSizeKiB <= 0 {
+		p.FlowSizeKiB = 256
+	}
 	if p.MinShare == 0 {
 		p.MinShare = 1
 	}
@@ -70,7 +90,7 @@ type Result struct {
 	Changed   bool        // false when the deadband kept the previous shares
 	Scores    map[int]float64
 	Reasons   map[int]string
-	Saturated map[int]bool // lines that are spilling over to unsaturated ones
+	Saturated map[int]bool // saturation pressure with a fresh unsaturated alternative; not a hard floor
 }
 
 // Scheduler keeps the smoothing state between updates.
@@ -80,12 +100,11 @@ type Scheduler struct {
 	applied   map[int]float64
 	cands     map[int]bool
 	saturated map[int]bool // above the threshold (with hysteresis), whether or not spilling
-	spilling  map[int]bool // saturated lines held at MinShare in the last step
 }
 
 func New(p Params) *Scheduler {
 	return &Scheduler{p: p.withDefaults(), smoothed: map[int]float64{}, applied: map[int]float64{}, cands: map[int]bool{},
-		saturated: map[int]bool{}, spilling: map[int]bool{}}
+		saturated: map[int]bool{}}
 }
 
 // Utilisation is the used fraction of the configured capacity in the direction
@@ -163,13 +182,9 @@ func Score(in Input) float64 {
 	if !in.MetricsFresh {
 		return base
 	}
-	u := 0.0
-	if in.DownMbps > 0 {
-		u = in.RXMbps / in.DownMbps
-	}
-	if in.UpMbps > 0 {
-		u = math.Max(u, in.TXMbps/in.UpMbps)
-	}
+	// Use the same direction as capacity and saturation. Opposite-direction
+	// traffic must not consume download/upload headroom a second time.
+	u := Utilisation(in)
 	headroom := math.Pow(math.Max(0.1, 1-clamp(u, 0, 1)), 0.7)
 	// Headroom already steers new connections away from a busy line. Probe RTT
 	// on that line is the same queue, so it must not cut the score a second time.
@@ -214,29 +229,59 @@ func (s *Scheduler) Step(in []Input) Result {
 		}
 	}
 	if len(cands) == 0 {
+		res.Changed = len(s.applied) != 0
 		s.smoothed, s.applied, s.cands = map[int]float64{}, map[int]float64{}, map[int]bool{}
-		res.Changed = true
+		s.saturated = map[int]bool{}
 		return res
 	}
 
-	// spill-over: saturated lines give their new connections to unsaturated ones
+	// Spill requires fresh load evidence for every possible destination. An
+	// unmeasured line is not evidence of spare capacity, even in capacity mode.
+	freshLoad := true
+	for _, w := range cands {
+		freshLoad = freshLoad && w.MetricsFresh
+	}
 	spill := map[int]bool{}
-	if s.p.Saturation > 0 {
+	if s.p.Saturation > 0 && freshLoad && (s.p.Objective == config.ObjectiveCapacity || comparableMetrics(cands)) {
 		s.updateSaturation(cands)
 		if len(s.saturated) > 0 && len(s.saturated) < len(cands) {
 			spill = s.saturated
 		}
+	} else {
+		// Unknown load is not a safe spill destination. Discard hysteresis
+		// until evidence is complete again; RTT objectives also need RTTs.
+		s.saturated = map[int]bool{}
 	}
-	res.Saturated = spill
+	res.Saturated = make(map[int]bool, len(spill))
+	for id := range spill {
+		res.Saturated[id] = true
+	}
 
 	raw := map[int]float64{}
 	var sum float64
+	var scores map[int]float64
+	var reasons map[int]string
+	if s.p.Objective != config.ObjectiveCapacity {
+		scores, reasons = s.objectiveScores(cands)
+	}
 	for _, w := range cands {
-		sc := Score(w)
+		var sc float64
+		if scores == nil {
+			sc = Score(w)
+		} else {
+			sc = scores[w.ID]
+		}
+		if reasons[w.ID] != "" {
+			res.Reasons[w.ID] = reasons[w.ID]
+		}
 		res.Scores[w.ID] = sc
 		if spill[w.ID] {
-			sc = 0
-			res.Reasons[w.ID] = "saturated: new connections go to unsaturated lines"
+			// Never erase relative health, preference or recovery weights. At
+			// threshold the extra factor is 1; overload reduces it to at least
+			// .5. Ordinary headroom already accounts for load. Avoid the hard
+			// zero-score target that drives delayed-feedback ping-pong.
+			sc *= clamp((1-Utilisation(w))/(1-s.p.Saturation), .5, 1)
+			res.Reasons[w.ID] = "saturated: bounded score discount with gradual redistribution"
 		}
 		raw[w.ID] = sc
 		sum += sc
@@ -252,10 +297,10 @@ func (s *Scheduler) Step(in []Input) Result {
 		raw[id] = 100 * sc / sum
 	}
 	for id, v := range raw {
-		if old, ok := s.smoothed[id]; ok && !spill[id] {
+		if old, ok := s.smoothed[id]; ok {
 			v = s.p.Alpha*v + (1-s.p.Alpha)*old
 		}
-		s.smoothed[id] = v // a spilling line restarts from zero and ramps back afterwards
+		s.smoothed[id] = v // retain accumulated intent even below the applied deadband
 		target[id] = v
 	}
 	for id := range s.smoothed {
@@ -276,21 +321,13 @@ func (s *Scheduler) Step(in []Input) Result {
 		}
 	}
 
-	newSpill := false
-	for id := range spill {
-		if !s.spilling[id] {
-			newSpill = true
-		}
-	}
-	s.spilling = spill
-
 	var next map[int]float64
 	switch {
-	case len(s.applied) == 0 || topologyChanged && s.lostCandidate(newSet) || newSpill:
-		// first run, a line left the pool, or a line just saturated: take effect immediately
+	case len(s.applied) == 0 || topologyChanged && s.lostCandidate(newSet):
+		// First run or a failed/removed line: take effect immediately.
 		next = target
 	default:
-		next = s.rateLimit(target, newSet)
+		next = s.rateLimit(target, newSet, nil)
 		if !topologyChanged && maxDelta(next, s.applied) < s.p.Deadband {
 			next = s.applied
 		}
@@ -349,9 +386,13 @@ func (s *Scheduler) applyMinShare(t map[int]float64) map[int]float64 {
 
 // rateLimit moves applied toward target by at most MaxStep points per WAN and
 // repairs the sum using headroom on the remaining WANs.
-func (s *Scheduler) rateLimit(target map[int]float64, set map[int]bool) map[int]float64 {
+func (s *Scheduler) rateLimit(target map[int]float64, set, spill map[int]bool) map[int]float64 {
 	out := map[int]float64{}
 	for id, tv := range target {
+		if spill[id] {
+			out[id] = s.p.MinShare
+			continue
+		}
 		cur, ok := s.applied[id]
 		if !ok {
 			cur = s.p.MinShare
@@ -377,6 +418,10 @@ func (s *Scheduler) rateLimit(target map[int]float64, set map[int]bool) map[int]
 		room := map[int]float64{}
 		var total float64
 		for id := range set {
+			// A spill floor is a hard constraint, not spare correction room.
+			if spill[id] {
+				continue
+			}
 			cur := appliedOrMin(id)
 			var r float64
 			if diff > 0 {
@@ -401,14 +446,20 @@ func (s *Scheduler) rateLimit(target map[int]float64, set map[int]bool) map[int]
 			}
 		}
 	}
-	// final exact normalisation (only matters if every line hit its step limit)
-	var sum float64
-	for _, v := range out {
-		sum += v
+	// Final normalization must also preserve the fixed spill floors.
+	var freeSum, fixed float64
+	for id, v := range out {
+		if spill[id] {
+			fixed += v
+		} else {
+			freeSum += v
+		}
 	}
-	if sum > 0 && math.Abs(sum-100) > 1e-6 {
+	if freeSum > 0 && math.Abs(freeSum+fixed-100) > 1e-6 {
 		for id := range out {
-			out[id] = out[id] * 100 / sum
+			if !spill[id] {
+				out[id] = out[id] * (100 - fixed) / freeSum
+			}
 		}
 	}
 	return out

@@ -15,10 +15,11 @@ import (
 
 // Methods the daemon answers.
 const (
-	MethodStatus  = "status"
-	MethodHistory = "history"
-	MethodFeature = "features"
-	MethodPoke    = "reconcile"
+	MethodStatus           = "status"
+	MethodHistory          = "history"
+	MethodInterfaceHistory = "interface_history"
+	MethodFeature          = "features"
+	MethodPoke             = "reconcile"
 )
 
 type request struct {

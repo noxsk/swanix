@@ -64,6 +64,8 @@ func Run(ctx context.Context, p Params) error {
 				return eng.Status(), nil
 			case control.MethodHistory:
 				return eng.History(), nil
+			case control.MethodInterfaceHistory:
+				return eng.InterfaceHistory(), nil
 			case control.MethodFeature:
 				return buildinfo.Collect(p.ProxyFeatures), nil
 			case control.MethodPoke:

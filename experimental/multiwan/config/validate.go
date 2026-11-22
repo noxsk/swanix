@@ -138,6 +138,14 @@ func (c *Config) Validate(profile BuildProfile) error {
 		} else {
 			nets[w.Network] = w.Name
 		}
+		switch w.IPFamily {
+		case "", "dual", "ipv4", "ipv6":
+		default:
+			e.addf(p+".ip_family", "使用 dual/ipv4/ipv6", "非法取值 %q", w.IPFamily)
+		}
+		if w.IPFamily == "ipv6" && w.IPv6Network == "none" {
+			e.add(p+".ipv6_network", "仅 IPv6 线路必须指定 auto 或 IPv6 接口", "")
+		}
 		if w.IPv6Network != "auto" && w.IPv6Network != "none" && !identRe.MatchString(w.IPv6Network) {
 			e.addf(p+".ipv6_network", "使用 auto、none 或逻辑接口名", "非法取值 %q", w.IPv6Network)
 		}
@@ -229,6 +237,19 @@ func (c *Config) Validate(profile BuildProfile) error {
 			}
 			seen[m] = true
 		}
+		switch pol.Objective {
+		case ObjectiveCapacity, ObjectiveLatency, ObjectiveThroughput, ObjectiveBalanced:
+		default:
+			e.addf(p+".objective", "使用 capacity/latency/throughput/balanced", "非法取值 %q", pol.Objective)
+		}
+		if pol.FlowSizeKiB < 1 || pol.FlowSizeKiB > 1048576 {
+			e.add(p+".flow_size_kib", "必须在 1–1048576 KiB 之间，仅 balanced 使用", "")
+		}
+		if pol.LatencyReservePercent < 0 || pol.LatencyReservePercent > 80 {
+			e.add(p+".latency_reserve_percent", "必须在 0–80 之间", "")
+		} else if pol.Objective != ObjectiveThroughput && pol.LatencyReservePercent != 0 {
+			e.add(p+".latency_reserve_percent", "仅 throughput 可设置非零低延迟容量软预留", "")
+		}
 		switch pol.Affinity {
 		case AffinityConnection, AffinitySourceDestination, AffinitySource:
 		default:
@@ -291,6 +312,11 @@ func (c *Config) Validate(profile BuildProfile) error {
 	case IPv6Native, IPv6NAT66, IPv6Unmanaged:
 	default:
 		e.addf("ipv6.mode", "使用 native/nat66/unmanaged", "非法取值 %q", c.IPv6.Mode)
+	}
+	if c.IPv6.NAT66Policy != "" {
+		if _, ok := c.PolicyByName(c.IPv6.NAT66Policy); !ok {
+			e.addf("ipv6.nat66_policy", "引用已存在的 policy section", "未找到 policy.%s", c.IPv6.NAT66Policy)
+		}
 	}
 	if c.IPv6.Mode == IPv6NAT66 {
 		if len(c.IPv6.NAT66Sources) == 0 {

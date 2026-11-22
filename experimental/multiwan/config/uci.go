@@ -167,7 +167,7 @@ func decode(sections []*uciSection) (*Config, error) {
 				decodeSection(s, path, &w, &errs)
 				cfg.WANs = append(cfg.WANs, w)
 			case "policy":
-				p := Policy{Name: s.name, Affinity: AffinityConnection, AffinityTimeout: 300, UnavailableAction: UnavailableReject}
+				p := (Policy{Name: s.name}).withDefaults()
 				decodeSection(s, path, &p, &errs)
 				cfg.Policies = append(cfg.Policies, p)
 			case "rule":

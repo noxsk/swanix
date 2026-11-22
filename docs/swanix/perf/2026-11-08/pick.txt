@@ -1,0 +1,46 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/sagernet/sing-box/experimental/multiwan/engine
+cpu: Apple M4
+BenchmarkPickComparison/WANs=2/legacy    	 2292219	       251.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/legacy    	 1930162	       219.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/legacy    	 1000000	       322.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/legacy    	 1386580	       251.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/legacy    	 1637583	       225.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/legacy-4  	 1490282	       247.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/legacy-4  	 1576012	       222.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/legacy-4  	 1593438	       234.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/legacy-4  	 1595754	       220.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/legacy-4  	 1654759	       215.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/optimized           	10728294	        44.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/optimized           	 7670672	        42.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/optimized           	 8863437	        42.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/optimized           	 8951503	        66.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/optimized           	 6960940	        57.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/optimized-4         	37695348	        12.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/optimized-4         	37341976	        12.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/optimized-4         	41402905	        13.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/optimized-4         	45571540	        12.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=2/optimized-4         	40923622	        12.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=14/legacy             	  484424	       979.5 ns/op	     112 B/op	       1 allocs/op
+BenchmarkPickComparison/WANs=14/legacy             	  498565	       977.8 ns/op	     112 B/op	       1 allocs/op
+BenchmarkPickComparison/WANs=14/legacy             	  495276	      1128 ns/op	     112 B/op	       1 allocs/op
+BenchmarkPickComparison/WANs=14/legacy             	  808315	      1268 ns/op	     112 B/op	       1 allocs/op
+BenchmarkPickComparison/WANs=14/legacy             	  633018	      1168 ns/op	     112 B/op	       1 allocs/op
+BenchmarkPickComparison/WANs=14/legacy-4           	  445615	       771.5 ns/op	     112 B/op	       1 allocs/op
+BenchmarkPickComparison/WANs=14/legacy-4           	  463536	       781.0 ns/op	     112 B/op	       1 allocs/op
+BenchmarkPickComparison/WANs=14/legacy-4           	  526144	       766.0 ns/op	     112 B/op	       1 allocs/op
+BenchmarkPickComparison/WANs=14/legacy-4           	  463006	       791.2 ns/op	     112 B/op	       1 allocs/op
+BenchmarkPickComparison/WANs=14/legacy-4           	  461715	       768.9 ns/op	     112 B/op	       1 allocs/op
+BenchmarkPickComparison/WANs=14/optimized          	 8279636	        55.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=14/optimized          	 6985317	        60.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=14/optimized          	 5864878	        57.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=14/optimized          	 6588187	        47.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=14/optimized          	 7765977	        68.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=14/optimized-4        	31987915	        17.60 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=14/optimized-4        	30658302	        20.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=14/optimized-4        	17395329	        21.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=14/optimized-4        	26154474	        16.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPickComparison/WANs=14/optimized-4        	26562301	        20.01 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/sagernet/sing-box/experimental/multiwan/engine	22.010s

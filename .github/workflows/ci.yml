@@ -54,6 +54,8 @@ jobs:
           go vet ./cmd/swanix ./service/multiwan ./common/dialer ./ci/test/vm/isp6 ./ci/test/perf/perfload
       - name: Unit tests with the race detector
         run: go test -race -count=1 ./experimental/multiwan/... ./ci/test/vm/isp6
+      - name: Concurrent-load comparison tool tests
+        run: python3 -m unittest discover -s ci/test/perf -p 'test_loaded_latency.py' -v
 
   netns-integration:
     runs-on: ubuntu-24.04
@@ -93,6 +95,8 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/pw" playwright@1.63.0
           "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Policy objective form schema
+        run: node ci/test/luci/policy-objectives.js
       - name: Render every view against a stubbed ubus backend
         run: |
           NODE_PATH="$RUNNER_TEMP/pw/node_modules" node ci/test/luci/render.js \

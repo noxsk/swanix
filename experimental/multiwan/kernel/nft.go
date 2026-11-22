@@ -459,8 +459,12 @@ func (in *Input) renderSelection(b *strings.Builder, rs *Ruleset, local bool, id
 			}
 			w("\t\tct mark & %s == 0 %s %s", idm, expr, in.selectStmt(r.Policy, fam))
 		}
-		if defPolicy != "" {
-			w("\t\tct mark & %s == 0 meta nfproto ipv%d %s", idm, fam, in.selectStmt(defPolicy, fam))
+		policy := defPolicy
+		if fam == 6 && in.Cfg.IPv6.Mode == config.IPv6NAT66 && in.Cfg.IPv6.NAT66Policy != "" {
+			policy = in.Cfg.IPv6.NAT66Policy
+		}
+		if policy != "" {
+			w("\t\tct mark & %s == 0 meta nfproto ipv%d %s", idm, fam, in.selectStmt(policy, fam))
 		}
 	}
 	if native6Rules(in, local) {

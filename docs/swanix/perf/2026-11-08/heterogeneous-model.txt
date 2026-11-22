@@ -1,0 +1,41 @@
+=== RUN   TestHeterogeneousFixedSnapshotModel
+    heterogeneous_model_test.go:133: MODEL ONLY: fixed idle/fresh policy snapshot, ideal equal byte sharing + 2 baseline RTTs; known generated class/size, not inferred; no TCP/device/full feedback
+=== RUN   TestHeterogeneousFixedSnapshotModel/light
+    heterogeneous_model_test.go:158: legacy capacity/capacity offered=20% short completion p50/p95/p99=160.262/162.097/163.146 ms; bulk effective=103.666 Mbps mean completion=0.291 s; completed short/bulk=10781/1219; unfinished at arrival-window end=[4 1], after drain=0
+    heterogeneous_model_test.go:163: legacy capacity/capacity short WAN1: policy=9% realized connections=9.10% bytes=8.91%
+    heterogeneous_model_test.go:163: legacy capacity/capacity short WAN2: policy=91% realized connections=90.90% bytes=91.09%
+    heterogeneous_model_test.go:163: legacy capacity/capacity bulk WAN1: policy=9% realized connections=7.30% bytes=6.53%
+    heterogeneous_model_test.go:163: legacy capacity/capacity bulk WAN2: policy=91% realized connections=92.70% bytes=93.47%
+    heterogeneous_model_test.go:158: new latency/throughput reserve=50% offered=20% short completion p50/p95/p99=22.621/40.972/160.262 ms; bulk effective=103.666 Mbps mean completion=0.276 s; completed short/bulk=10781/1219; unfinished at arrival-window end=[3 1], after drain=0
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% short WAN1: policy=98% realized connections=98.15% bytes=98.11%
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% short WAN2: policy=2% realized connections=1.85% bytes=1.89%
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% bulk WAN1: policy=5% realized connections=4.35% bytes=4.14%
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% bulk WAN2: policy=95% realized connections=95.65% bytes=95.86%
+=== RUN   TestHeterogeneousFixedSnapshotModel/medium
+    heterogeneous_model_test.go:158: legacy capacity/capacity offered=60% short completion p50/p95/p99=160.488/164.194/168.632 ms; bulk effective=309.580 Mbps mean completion=0.434 s; completed short/bulk=10781/1219; unfinished at arrival-window end=[14 3], after drain=0
+    heterogeneous_model_test.go:163: legacy capacity/capacity short WAN1: policy=9% realized connections=9.10% bytes=8.91%
+    heterogeneous_model_test.go:163: legacy capacity/capacity short WAN2: policy=91% realized connections=90.90% bytes=91.09%
+    heterogeneous_model_test.go:163: legacy capacity/capacity bulk WAN1: policy=9% realized connections=7.30% bytes=6.53%
+    heterogeneous_model_test.go:163: legacy capacity/capacity bulk WAN2: policy=91% realized connections=92.70% bytes=93.47%
+    heterogeneous_model_test.go:158: new latency/throughput reserve=50% offered=60% short completion p50/p95/p99=25.243/70.234/160.393 ms; bulk effective=310.663 Mbps mean completion=0.408 s; completed short/bulk=10781/1219; unfinished at arrival-window end=[3 1], after drain=0
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% short WAN1: policy=98% realized connections=98.15% bytes=98.11%
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% short WAN2: policy=2% realized connections=1.85% bytes=1.89%
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% bulk WAN1: policy=5% realized connections=4.35% bytes=4.14%
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% bulk WAN2: policy=95% realized connections=95.65% bytes=95.86%
+=== RUN   TestHeterogeneousFixedSnapshotModel/high
+    heterogeneous_model_test.go:158: legacy capacity/capacity offered=90% short completion p50/p95/p99=161.452/177.761/200.008 ms; bulk effective=456.378 Mbps mean completion=0.976 s; completed short/bulk=10781/1219; unfinished at arrival-window end=[16 11], after drain=0
+    heterogeneous_model_test.go:163: legacy capacity/capacity short WAN1: policy=9% realized connections=9.10% bytes=8.91%
+    heterogeneous_model_test.go:163: legacy capacity/capacity short WAN2: policy=91% realized connections=90.90% bytes=91.09%
+    heterogeneous_model_test.go:163: legacy capacity/capacity bulk WAN1: policy=9% realized connections=7.30% bytes=6.53%
+    heterogeneous_model_test.go:163: legacy capacity/capacity bulk WAN2: policy=91% realized connections=92.70% bytes=93.47%
+    heterogeneous_model_test.go:158: new latency/throughput reserve=50% offered=90% short completion p50/p95/p99=33.107/160.131/209.767 ms; bulk effective=457.601 Mbps mean completion=0.886 s; completed short/bulk=10781/1219; unfinished at arrival-window end=[8 11], after drain=0
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% short WAN1: policy=98% realized connections=98.15% bytes=98.11%
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% short WAN2: policy=2% realized connections=1.85% bytes=1.89%
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% bulk WAN1: policy=5% realized connections=4.35% bytes=4.14%
+    heterogeneous_model_test.go:163: new latency/throughput reserve=50% bulk WAN2: policy=95% realized connections=95.65% bytes=95.86%
+--- PASS: TestHeterogeneousFixedSnapshotModel (0.02s)
+    --- PASS: TestHeterogeneousFixedSnapshotModel/light (0.00s)
+    --- PASS: TestHeterogeneousFixedSnapshotModel/medium (0.00s)
+    --- PASS: TestHeterogeneousFixedSnapshotModel/high (0.01s)
+PASS
+ok  	github.com/sagernet/sing-box/experimental/multiwan/scheduler	0.174s

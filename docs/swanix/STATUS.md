@@ -110,7 +110,8 @@ servers above), multi-hour behaviour.
   whose line leaves the pool moves at once. `source_destination` carried traffic too: 10 clients × 2 destinations, every
   (client, destination) pair stayed on one line over 10 connections, and 5 of the 10 clients reached the two
   destinations over different lines. The NAT66 variants are rendered and loaded into the kernel only.
-* Saturation spill-over (`policy.saturation_threshold`, optional): both lines configured at 4 Mbit/s, 20 Mbit/s of
+* Historical **pre-soft-spill** result (not validation of the current bounded-discount controller): saturation
+  spill-over (`policy.saturation_threshold`, optional), both lines configured at 4 Mbit/s, 20 Mbit/s of
   traffic arriving on wan1 (`TestLiteSaturationSpillover`, Lite daemon, real interface counters): wan1 was reported
   saturated within a few seconds and got 1 of the next 100 connections; after the load stopped it was released and its
   share ramped back. The decision uses the daemon's measured rates (sampled every `sample_interval`, smoothed) at the
